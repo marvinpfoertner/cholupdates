@@ -1,0 +1,44 @@
+[build-system]
+requires = [
+    "setuptools>=46.4.0",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--verbose",
+    "--doctest-modules",
+]
+testpaths = [
+    "src",
+    "tests",
+]
+
+[tool.pylint.master]
+extension-pkg-whitelist = "numpy"
+
+[tool.pylint.format]
+# Configuration suggested by Black:
+# https://github.com/psf/black/blob/7f75fe3669ebf0627b1b0476a6d02047e909b959/docs/compatible_configs.md#black-compatible-configurations
+max-line-length = "88"
+
+[tool.pylint.messages_control]
+disable = [
+    # Exceptions suggested by Black:
+    # https://github.com/psf/black/blob/7f75fe3669ebf0627b1b0476a6d02047e909b959/docs/compatible_configs.md#black-compatible-configurations
+    "bad-continuation",
+    "bad-whitespace",
+    # Custom exceptions
+    "invalid-name",
+]
+
+[tool.isort]
+# Configuration suggested by Black:
+# https://github.com/psf/black/blob/7f75fe3669ebf0627b1b0476a6d02047e909b959/docs/compatible_configs.md#black-compatible-configurations
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88

@@ -1,0 +1,52 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Linting and Testing
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.6', '3.7', '3.8']
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install --upgrade setuptools>=46.4.0
+    - name: Build package
+      run: |
+        python -m pip install -e .[testing,linting,formatting]
+    - name: Test with pytest
+      run: |
+        pytest
+      if: always()
+    - name: Lint source with pylint
+      run: |
+        pylint src/cholupdates
+      if: always()
+    - name: Lint tests with pylint
+      run: |
+        pylint tests/cholupdates
+      if: always()
+    - name: Check formatting with black
+      run: |
+        black --check --diff .
+      if: always()
+    - name: Check formatting with isort
+      run: |
+        isort --check --diff .
+      if: always()

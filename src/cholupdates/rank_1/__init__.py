@@ -21,12 +21,13 @@ algorithm on :math:`A'`, which generally have complexity :math:`O(n^3)`.
 This submodule contains implementations of such methods.
 """
 
-from ._update import update
+from ._update import update  # isort: skip
+from ._downdate import downdate  # isort: skip
 
 # Concrete update functions
 from ._seeger import update_seeger  # isort: skip
 
 __all__ = [
     "update",
-    "update_seeger",
+    "downdate",
 ]

@@ -228,7 +228,7 @@ def update_seeger(
 
     if L.dtype != np.double:
         raise TypeError(
-            f"The given Cholesky factor `L_T` does not have dtype `np.double` (given "
+            f"The given Cholesky factor `L` does not have dtype `np.double` (given "
             f"dtype: {L.dtype.name})"
         )
 

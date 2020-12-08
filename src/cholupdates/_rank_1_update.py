@@ -77,7 +77,7 @@ def rank_1_update(
         If :code:`L` does not have shape :code:`(N, N)` for some :code:`N`.
     TypeError
         If :code:`L` does not have dtype :class:`numpy.float64`.
-    np.linalg.LinAlgError
+    numpy.linalg.LinAlgError
         If the diagonal of :code:`L` contains zeros and :code:`check_diag` is set to
         true.
     ValueError
@@ -88,7 +88,7 @@ def rank_1_update(
 
     See Also
     --------
-    cholesky_rank_1_downdate : A similar function which performs a symmetric rank 1
+    cholupdates.rank_1_downdate : A similar function which performs a symmetric rank 1
         downdate instead of an update.
 
     References

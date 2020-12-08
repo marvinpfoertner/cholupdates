@@ -1,39 +1,13 @@
-"""Tests for the symmetric rank-1 update to a Cholesky factor"""
+"""Tests for the implementation of symmetric rank-1 updates to a Cholesky factor"""
 
 # pylint: disable=redefined-outer-name
 
-from typing import Optional
 
 import numpy as np
 import pytest
-import scipy.linalg
-import scipy.stats
 
 import cholupdates
-
-
-def random_spd_matrix(
-    n: int,
-    spectrum: np.ndarray = None,
-    spectrum_shape: float = 10.0,
-    spectrum_scale: float = 1.0,
-    spectrum_offset: float = 0.0,
-    random_state: Optional[np.random.RandomState] = None,
-) -> np.ndarray:
-    Q = scipy.stats.special_ortho_group.rvs(n, random_state=random_state)
-
-    if spectrum is None:
-        spectrum = scipy.stats.gamma.rvs(
-            spectrum_shape,
-            loc=spectrum_offset,
-            scale=spectrum_scale,
-            size=n,
-            random_state=random_state,
-        )
-
-        # TODO: Sort the spectrum?
-
-    return Q @ np.diag(spectrum) @ Q.T
+from tests.cholupdates import _utils as test_utils
 
 
 @pytest.fixture(params=[pytest.param(N, id=f"dim{N}") for N in [2, 3, 5, 10, 100]])
@@ -54,8 +28,8 @@ def random_state(request):
 def A(N, random_state) -> np.ndarray:
     """Random symmetric positive definite matrix of dimension :func:`N`, sampled from
     :func:`random_state`"""
-    return random_spd_matrix(
-        N, spectrum_shape=10.0, spectrum_offset=1.0, random_state=random_state
+    return test_utils.random_spd_matrix(
+        N, spectrum_shape=10.0, spectrum_loc=1.0, random_state=random_state
     )
 
 

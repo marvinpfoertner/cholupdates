@@ -20,10 +20,9 @@ def rank_1_update(
     triangular Cholesky factor :math:`L'` of :math:`A' = L' L'^T`, where
     :math:`A' = A + v v^T` for some vector :math:`v \in \mathbb{R}^n`.
 
-    We implement the method in section 2 of [1]_. This algorithm computes the Cholesky
-    decomposition of :math:`A'` from :math:`L` in :math:`O(N^2)` time, which is faster
-    than the :math:`O(N^3)` time complexity of naively applying a Cholesky algorithm to
-    :math:`A'` directly.
+    This function computes the Cholesky decomposition of :math:`A'` from :math:`L` in
+    :math:`O(N^2)` time, which is faster than the :math:`O(N^3)` time complexity of
+    naively applying a Cholesky algorithm to :math:`A'` directly.
 
     Parameters
     ----------
@@ -90,6 +89,87 @@ def rank_1_update(
     --------
     cholupdates.rank_1_downdate : A similar function which performs a symmetric rank 1
         downdate instead of an update.
+
+    Notes
+    -----
+    This function implements the algorithm from [1]_, section 2.
+    In the following, we will briefly summarize the theory behind the algorithm.
+    Let :math:`A \in \mathbb{R}^{n \times n}` be symmetric and positive definite, and
+    :math:`v \in \mathbb{R}^n`.
+    The vector :math:`v` defines a symmetric rank-1 update :math:`v v^T` to :math:`A`,
+    i.e.
+
+    .. math::
+       A' := A + v v^T.
+
+    Assume that the Cholesky factorization of :math:`A`, i.e. a lower-triangular matrix
+    :math:`L \in \mathbb{R}^{n \times n}` with :math:`A = L L^T`, is given.
+    We want to find a fast and stable method to update the Cholesky factorization
+    :math:`L L^T` of :math:`A` to the Cholesky factorization of the updated matrix
+    :math:`A'`.
+
+    To this end, we rewrite the update equation as
+
+    .. math::
+        A'
+        =
+        \underbrace{L L^T}_{= A} + v v^T
+        =
+        \begin{pmatrix}
+            L & v
+        \end{pmatrix}
+        \begin{pmatrix}
+            L^T \\
+            v^T
+        \end{pmatrix}.
+
+    We can now construct a sequence of orthogonal transformations (we use Givens
+    rotations) :math:`Q := Q_1 \dotsb Q_n \in \mathbb{R}^{(n + 1) \times (n + 1)}` such
+    that
+
+    .. math::
+        \begin{pmatrix}
+            L & v
+        \end{pmatrix}
+        Q
+        =
+        \begin{pmatrix}
+            L' & 0
+        \end{pmatrix},
+
+    where :math:`L' \in \mathbb{R}^{n \times n}` is lower triangular.
+    In other words, :math:`Q` eliminates the last column, i.e. :math:`v`, from the
+    augmented matrix :math:`(L \mid v)`, while preserving the lower-triangular structure
+    of the left block.
+    But now we have
+
+    .. math::
+        L' L'^T
+        & =
+        \begin{pmatrix}
+            L' & 0
+        \end{pmatrix}
+        \begin{pmatrix}
+            L' & 0
+        \end{pmatrix}^T \\
+        & =
+        \begin{pmatrix}
+            L & v
+        \end{pmatrix}
+        \underbrace{Q Q^T}_{= I}
+        \begin{pmatrix}
+            L^T \\
+            v^T
+        \end{pmatrix} \\
+        & = \underbrace{L L^T}_{= A} + v v^T \\
+        & = A',
+
+    so :math:`L'` is already the lower-triangular Cholesky factor of :math:`A'`.
+
+    As mentioned above, we need to multiply :math:`n` Givens rotation matrices to
+    :math:`(L \mid v)` which takes :math:`O(n)` arithmetic operations for each rotation
+    matrix.
+    Hence, we end up with a total time complexity of :math:`O(n^2)`.
 
     References
     ----------

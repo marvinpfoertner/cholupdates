@@ -3,11 +3,13 @@
 # pylint: disable=redefined-outer-name
 
 
+from typing import Tuple
+
 import numpy as np
 import pytest
+import scipy.stats
 
 import cholupdates
-from tests.cholupdates import _utils as test_utils
 
 
 @pytest.fixture(params=[pytest.param(N, id=f"dim{N}") for N in [2, 3, 5, 10, 100]])
@@ -25,12 +27,35 @@ def random_state(request):
 
 
 @pytest.fixture
-def A(N, random_state) -> np.ndarray:
-    """Random symmetric positive definite matrix of dimension :func:`N`, sampled from
-    :func:`random_state`"""
-    return test_utils.random_spd_matrix(
-        N, spectrum_shape=10.0, spectrum_loc=1.0, random_state=random_state
+def A_eigh(
+    N: int, random_state: np.random.RandomState
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Random eigendecomposition of a symmetric positive definite matrix of dimension
+    :func:`N`, sampled from :func:`random_state`"""
+    # Generate a random orthonormal eigenbasis
+    basis = scipy.stats.special_ortho_group.rvs(N, random_state=random_state)
+
+    # Generate a random spectrum
+    spectrum = scipy.stats.gamma.rvs(
+        a=10.0,  # "Shape" parameter
+        loc=1.0,
+        scale=1.0,
+        size=N,
+        random_state=random_state,
     )
+
+    spectrum.sort()
+
+    return (spectrum, basis)
+
+
+@pytest.fixture
+def A(A_eigh: Tuple[np.ndarray, np.ndarray]) -> np.ndarray:
+    """Symmetric positive definite matrix of dimension :func:`N` defined by the
+    eigendecomposition `A_eigh`, sampled from :func:`random_state`"""
+    spectrum, Q = A_eigh
+
+    return Q @ np.diag(spectrum) @ Q.T
 
 
 @pytest.fixture(params=["C", "F"], ids=["orderC", "orderF"])
@@ -202,3 +227,19 @@ def test_raise_on_zero_diagonal(L, v):
 
     with pytest.raises(np.linalg.LinAlgError):
         cholupdates.rank_1_update(L, v)
+
+
+def test_ill_conditioned_matrix(A, A_eigh, L):
+    """Tests whether the algorithm still works if the update blows up the condition
+    number of the updated matrix."""
+    spectrum, Q = A_eigh
+
+    # Generate adverse update vector
+    v = Q[:, -1]  # Select eigenvector corresponding to largest eigenvalue
+    v *= np.sqrt(spectrum[-1] * 100000)  # Update multiplies condition number by 100000
+
+    # Compute update
+    L_upd = cholupdates.rank_1_update(L, v)
+
+    # Check quality
+    assert L_upd @ L_upd.T == pytest.approx(A + np.outer(v, v))

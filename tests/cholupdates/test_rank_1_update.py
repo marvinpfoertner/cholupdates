@@ -85,7 +85,7 @@ def A_prime(A, v) -> np.ndarray:
 def L_prime(L, v) -> np.ndarray:
     """Lower cholesky factor of :func:`A_prime` computed via
     :func:`cholupdates.rank_1_updates`"""
-    return cholupdates.rank_1_update(
+    return cholupdates.rank_1.update(
         L=L.copy(order="K"), v=v.copy(), overwrite_L=True, overwrite_v=True
     )
 
@@ -121,7 +121,7 @@ def test_upper_triangular_part_not_accessed(L, v, L_prime):
     L_mod = L.copy(order="K")
     L_mod[np.triu_indices(N, k=1)] = np.random.rand((N * (N - 1)) // 2)
 
-    L_mod_upd = cholupdates.rank_1_update(L_mod, v)
+    L_mod_upd = cholupdates.rank_1.update(L_mod, v)
 
     np.testing.assert_array_equal(
         np.triu(L_mod, k=1),
@@ -151,7 +151,7 @@ def test_no_input_mutation(L, v, overwrite_L, overwrite_v):
     L_copy = L.copy(order="K")
     v_copy = v.copy()
 
-    cholupdates.rank_1_update(
+    cholupdates.rank_1.update(
         L_copy, v_copy, overwrite_L=overwrite_L, overwrite_v=overwrite_v
     )
 
@@ -167,7 +167,7 @@ def test_raise_on_invalid_cholesky_factor_shape(shape):
     """Tests whether a :class:`ValueError` is raised if the shape of the Cholesky factor
     is not :code:`(N, N)` for some N"""
     with pytest.raises(ValueError):
-        cholupdates.rank_1_update(L=np.ones(shape), v=np.ones(shape[-1]))
+        cholupdates.rank_1.update(L=np.ones(shape), v=np.ones(shape[-1]))
 
 
 @pytest.mark.parametrize("shape", [(3, 2), (3, 1), (1, 3, 3)])
@@ -175,7 +175,7 @@ def test_raise_on_invalid_vector_shape(shape):
     """Tests whether a :class:`ValueError` is raised if the vector has more than one
     dimension"""
     with pytest.raises(ValueError):
-        cholupdates.rank_1_update(L=np.eye(shape[0]), v=np.ones(shape))
+        cholupdates.rank_1.update(L=np.eye(shape[0]), v=np.ones(shape))
 
 
 def test_raise_on_vector_dimension_mismatch(L):
@@ -192,7 +192,7 @@ def test_raise_on_vector_dimension_mismatch(L):
     v = np.random.rand(v_len)
 
     with pytest.raises(ValueError):
-        cholupdates.rank_1_update(L=L, v=v)
+        cholupdates.rank_1.update(L=L, v=v)
 
 
 @pytest.mark.parametrize(
@@ -211,7 +211,7 @@ def test_raise_on_wrong_dtype(L_dtype, v_dtype):
     """Tests whether a :class:`TypeError` is raised if the Cholesky factor or the vector
     :code:`v` have an unsupported dtype."""
     with pytest.raises(TypeError):
-        cholupdates.rank_1_update(
+        cholupdates.rank_1.update(
             L=np.eye(5, dtype=L_dtype), v=np.zeros(5, dtype=v_dtype)
         )
 
@@ -226,7 +226,7 @@ def test_raise_on_zero_diagonal(L, v):
     L[k, k] = 0.0
 
     with pytest.raises(np.linalg.LinAlgError):
-        cholupdates.rank_1_update(L, v)
+        cholupdates.rank_1.update(L, v)
 
 
 def test_ill_conditioned_matrix(A, A_eigh, L):
@@ -239,7 +239,7 @@ def test_ill_conditioned_matrix(A, A_eigh, L):
     v *= np.sqrt(spectrum[-1] * 100000)  # Update multiplies condition number by 100000
 
     # Compute update
-    L_upd = cholupdates.rank_1_update(L, v)
+    L_upd = cholupdates.rank_1.update(L, v)
 
     # Check quality
     assert L_upd @ L_upd.T == pytest.approx(A + np.outer(v, v))

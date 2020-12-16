@@ -10,10 +10,10 @@ Welcome to cholupdates's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-API documentation
-=================
+Rank-1 Modifications
+====================
 
-.. automodule:: cholupdates
+.. automodule:: cholupdates.rank_1
    :members:
    :imported-members:
 

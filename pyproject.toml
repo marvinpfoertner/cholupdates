@@ -32,6 +32,7 @@ disable = [
     # Custom exceptions
     "invalid-name",
     "too-many-arguments",
+    "duplicate-code",
 ]
 
 [tool.isort]

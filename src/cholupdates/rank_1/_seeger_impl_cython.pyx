@@ -7,7 +7,6 @@ References
 """
 
 cimport cython
-
 cimport scipy.linalg.cython_blas
 
 @cython.boundscheck(False)  # Deactivate bounds checking

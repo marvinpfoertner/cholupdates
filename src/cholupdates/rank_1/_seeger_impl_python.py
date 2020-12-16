@@ -9,8 +9,8 @@ import numpy as np
 import scipy.linalg
 
 
-def _update_inplace(L: np.ndarray, v: np.ndarray) -> None:
-    """Implementation of the rank-1 Cholesky update algorithm from section 2 in [1]_.
+def update(L: np.ndarray, v: np.ndarray) -> None:
+    """Python implementation of the rank-1 update algorithm from section 2 in [1]_.
 
     Warning: The validity of the arguments will not be checked by this method, so
     passing invalid argument will result in undefined behavior.
@@ -28,11 +28,14 @@ def _update_inplace(L: np.ndarray, v: np.ndarray) -> None:
     v :
         The vector :math:`v` with shape :code:`(N, N)` and dtype :class:`numpy.float64`
         defining the symmetric rank-1 update :math:`v v^T`.
+        Will be reused as an internal memory buffer to store intermediate results, and
+        thus modified.
 
     References
     ----------
     .. [1] M. Seeger, "Low Rank Updates for the Cholesky Decomposition", 2008.
     """
+
     N = L.shape[0]
 
     # Generate a contiguous view of the underling memory buffer of L, emulating raw

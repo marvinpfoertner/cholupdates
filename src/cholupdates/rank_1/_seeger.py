@@ -11,7 +11,7 @@ from typing import Optional
 import numpy as np
 
 from ._arg_validation import _validate_update_args
-from ._seeger_impl_python import _update_inplace as _update_impl_python
+from ._seeger_impl_python import update as _update_impl_python
 
 _update_available_impls = ["python"]
 
@@ -105,7 +105,8 @@ def update_seeger(
         Lower-triangular Cholesky factor :math:`L'` of :math:`A + v v^T` with shape
         :code:`(N, N)` and dtype :class:`numpy.double`.
         The diagonal entries of this matrix are guaranteed to be positive.
-        The strict upper-triangular part of this matrix will contain arbitrary values.
+        The strict upper-triangular part of this matrix will contain the values from the
+        upper-triangular part of :code:`L`.
         The matrix will inherit the memory order from :code:`L`.
 
     Raises

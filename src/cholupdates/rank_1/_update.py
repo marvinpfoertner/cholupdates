@@ -75,8 +75,8 @@ def update(
         Lower triangular Cholesky factor :math:`L'` of :math:`A + v v^T` with shape
         :code:`(N, N)` and the same dtype as :code:`L`.
         The diagonal entries of this matrix are guaranteed to be positive.
-        The strict upper triangular part of this matrix might contain arbitrary values.
-        The matrix will inherit the memory order from :code:`L`.
+        The strict upper-triangular part of this matrix will contain the values from the
+        upper-triangular part of :code:`L`.
 
     Raises
     ------

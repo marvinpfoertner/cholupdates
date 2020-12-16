@@ -57,14 +57,16 @@ def update(
     method :
         Algorithm to be used to compute the updated Cholesky factor. Must be one of
 
-        - "cho_factor": Directly uses :func:`scipy.linalg.cho_factor` on
-            :math:`L L^T + v v^T`. This is just here for convenience and should be
-            slower than all other methods.
-        - "seeger": Calls :func:`cholupdates.rank_1.update_seeger`.
-        - "seeger_cython": Calls :func:`cholupdates.rank_1.update_seeger` with
-            :code:`impl="cython"`.
-        - "seeger_python": Calls :func:`cholupdates.rank_1.update_seeger` with
-            :code:`impl="python"`.
+        - "cho_factor":
+            Directly uses :func:`scipy.linalg.cho_factor` on :math:`L L^T + v v^T`.
+            This is just here for convenience and should be slower than all other
+            methods.
+        - "seeger":
+            Calls :func:`cholupdates.rank_1.update_seeger`.
+        - "seeger_cython":
+            Calls :func:`cholupdates.rank_1.update_seeger` with :code:`impl="cython"`.
+        - "seeger_python":
+            Calls :func:`cholupdates.rank_1.update_seeger` with :code:`impl="python"`.
 
         Defaults to "seeger".
 
@@ -155,13 +157,15 @@ def update(
     if method == "cho_factor":
         _validate_update_args(L, v, check_diag)
 
-        L = np.tril(L)
+        L_tril = np.tril(L)
 
         L_upd, _ = scipy.linalg.cho_factor(
-            L @ L.T + np.outer(v, v),
+            L_tril @ L_tril.T + np.outer(v, v),
             lower=True,
             overwrite_a=True,
         )
+
+        L_upd[np.triu_indices(L.shape[0], k=1)] = L[np.triu_indices(L.shape[0], k=1)]
     elif method == "seeger":
         L_upd = update_seeger(
             L,

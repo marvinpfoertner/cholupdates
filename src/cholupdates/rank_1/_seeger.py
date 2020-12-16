@@ -89,11 +89,14 @@ def update_seeger(
     impl :
         Defines which implementation of the algorithm to use. Must be one of
 
-        - :class:`None`: Choose the Cython implementation if it is available, otherwise
-            use the Python implementation.
-        - "cython": Use the Cython implementation. Throws a :class:`ValueError` if the
-            Cython implementation is not available.
-        - "python": Use the Python implementation.
+        - :class:`None`
+            Choose the Cython implementation if it is available, otherwise use the
+            Python implementation.
+        - "cython"
+            Use the Cython implementation. Throws a :class:`ValueError` if the Cython
+            implementation is not available.
+        - "python":
+            Use the Python implementation.
 
         Defaults to None.
 

@@ -6,10 +6,26 @@ References
 .. [1] M. Seeger, "Low Rank Updates for the Cholesky Decomposition", 2008.
 """
 
+from typing import Optional
+
 import numpy as np
 
 from ._arg_validation import _validate_update_args
-from ._seeger_impl_python import _update_inplace as _seeger_inplace_python
+from ._seeger_impl_python import _update_inplace as _update_impl_python
+
+_update_available_impls = ["python"]
+
+try:
+    from ._seeger_impl_cython import update as _update_impl_cython
+
+    _cython_available = True
+    _update_available_impls.append("cython")
+
+    _update_impl_default = _update_impl_cython
+except ImportError:
+    _cython_available = False
+
+    _update_impl_default = _update_impl_python
 
 
 def update_seeger(
@@ -18,6 +34,7 @@ def update_seeger(
     check_diag: bool = True,
     overwrite_L: bool = False,
     overwrite_v: bool = False,
+    impl: Optional[str] = None,
 ) -> np.ndarray:
     r"""Update a Cholesky factorization after addition of a positive semidefinite
     symmetric rank-1 matrix using the algorithm from section 2 of [1]_.
@@ -69,6 +86,16 @@ def update_seeger(
         Passing `False` here ensures that the array :code:`v` is not modified.
         In this case, an additional array of shape :code:`(N,)` and dtype
         :class:`numpy.double` must be allocated.
+    impl :
+        Defines which implementation of the algorithm to use. Must be one of
+
+        - :class:`None`: Choose the Cython implementation if it is available, otherwise
+            use the Python implementation.
+        - "cython": Use the Cython implementation. Throws a :class:`ValueError` if the
+            Cython implementation is not available.
+        - "python": Use the Python implementation.
+
+        Defaults to None.
 
     Returns
     -------
@@ -92,6 +119,9 @@ def update_seeger(
         If :code:`L` does not have dtype :class:`numpy.double`.
     TypeError
         If :code:`v` does not have dtype :class:`numpy.double`.
+    ValueError
+        If :code:`impl` was set to :code:`"cython"`, but the Cython implementation is
+        not available.
 
     See Also
     --------
@@ -207,6 +237,22 @@ def update_seeger(
         v = v.copy()
 
     # Update L
-    _seeger_inplace_python(L, v)
+    if impl is None:
+        _update_impl_default(L, v)
+    elif impl == "cython":
+        try:
+            _update_impl_cython(L, v)
+        except NameError as ne:
+            raise ValueError("The Cython implementation is not available.") from ne
+    elif impl == "python":
+        _update_impl_python(L, v)
+    else:
+        raise ValueError(
+            f"Unknown implementation '{impl}'. Available implementations: "
+            f"{', '.join(_update_available_impls)}"
+        )
 
     return L
+
+
+update_seeger.available_impls = _update_available_impls

@@ -61,6 +61,10 @@ def update(
             :math:`L L^T + v v^T`. This is just here for convenience and should be
             slower than all other methods.
         - "seeger": Calls :func:`cholupdates.rank_1.update_seeger`.
+        - "seeger_cython": Calls :func:`cholupdates.rank_1.update_seeger` with
+            :code:`impl="cython"`.
+        - "seeger_python": Calls :func:`cholupdates.rank_1.update_seeger` with
+            :code:`impl="python"`.
 
         Defaults to "seeger".
 
@@ -166,7 +170,25 @@ def update(
             overwrite_L=overwrite_L,
             overwrite_v=overwrite_v,
         )
+    elif method == "seeger_cython":
+        L_upd = update_seeger(
+            L,
+            v,
+            check_diag=check_diag,
+            overwrite_L=overwrite_L,
+            overwrite_v=overwrite_v,
+            impl="cython",
+        )
+    elif method == "seeger_python":
+        L_upd = update_seeger(
+            L,
+            v,
+            check_diag=check_diag,
+            overwrite_L=overwrite_L,
+            overwrite_v=overwrite_v,
+            impl="python",
+        )
     else:
-        raise ValueError(f"Unknown method name: '{method}'")
+        raise ValueError(f"Unknown method: '{method}'")
 
     return L_upd

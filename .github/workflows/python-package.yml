@@ -38,7 +38,7 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
-      if: startsWith(matrix.platform,'ubuntu') && matrix.python == '3.8'
+      if: startsWith(matrix.platform,'ubuntu') && matrix.python-version == '3.8'
     - name: Lint source with pylint
       run: |
         pylint src/cholupdates

@@ -1,7 +1,9 @@
 [build-system]
 requires = [
     "setuptools>=46.4.0",
-    "wheel"
+    "wheel",
+    "Cython",
+    "scipy",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -32,6 +34,7 @@ disable = [
     # Custom exceptions
     "invalid-name",
     "too-many-arguments",
+    "duplicate-code",
 ]
 
 [tool.isort]

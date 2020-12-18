@@ -32,8 +32,12 @@ jobs:
         python -m pip install -e .[testing,linting,formatting]
     - name: Test with pytest
       run: |
-        pytest
+        pytest --cov=cholupdates --no-cov-on-fail
       if: always()
+    - name: "Upload coverage to Codecov"
+      uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
     - name: Lint source with pylint
       run: |
         pylint src/cholupdates

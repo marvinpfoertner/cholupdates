@@ -72,11 +72,11 @@ def update(
 
     Returns
     -------
-    Lower triangular Cholesky factor :math:`L'` of :math:`A + v v^T` with shape
-    :code:`(N, N)` and the same dtype as :code:`L`.
-    The diagonal entries of this matrix are guaranteed to be positive.
-    The strict upper-triangular part of this matrix will contain the values from the
-    upper-triangular part of :code:`L`.
+    (N, N) numpy.ndarray, dtype=L.dtype
+        Lower triangular Cholesky factor :math:`L'` of :math:`A + v v^T`.
+        The diagonal entries of this matrix are guaranteed to be positive.
+        The strict upper-triangular part of this matrix will contain the values from the
+        upper-triangular part of :code:`L`.
 
     Raises
     ------

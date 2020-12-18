@@ -101,6 +101,7 @@ def update_seeger(
 
     Returns
     -------
+    (N, N) numpy.ndarray, dtype=numpy.double
         Lower-triangular Cholesky factor :math:`L'` of :math:`A + v v^T` with shape
         :code:`(N, N)` and dtype :class:`numpy.double`.
         The diagonal entries of this matrix are guaranteed to be positive.
@@ -212,9 +213,14 @@ def update_seeger(
     matrix.
     Hence, we end up with a total time complexity of :math:`O(n^2)`.
 
+    Note that this algorithm is a minor modification of the `LINPACK` [2]_ routine
+    :code:`dchud`. The exact modifications are described in [1]_.
+
     References
     ----------
     .. [1] M. Seeger, "Low Rank Updates for the Cholesky Decomposition", 2008.
+    .. [2] J. Dongarra, C. Moler, J. Bunch, and G. Steward. "LINPACK User's Guide".
+        Society for Industrial and Applied Mathematics, 1979.
     """
 
     # Validate arguments

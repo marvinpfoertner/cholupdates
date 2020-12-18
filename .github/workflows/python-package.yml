@@ -32,7 +32,7 @@ jobs:
         python -m pip install -e .[testing,linting,formatting]
     - name: Test with pytest
       run: |
-        pytest --cov=cholupdates --no-cov-on-fail
+        pytest --cov=cholupdates --no-cov-on-fail --cov-report=xml
       if: always()
     - name: "Upload coverage to Codecov"
       if: startsWith(matrix.platform,'ubuntu') && matrix.python == '3.8'

@@ -46,6 +46,10 @@ templates_path = ["_templates"]
 exclude_patterns = []
 
 
+# -- Autodoc configuration -----------------------------------------------
+
+autodoc_typehints = "description"
+
 # -- Intersphinx configuration -----------------------------------------------
 
 intersphinx_mapping = {

@@ -11,7 +11,7 @@ def _validate_update_args(
     # Validate L
     if L.ndim != 2 or L.shape[0] != L.shape[1]:
         raise ValueError(
-            f"The given Cholesky factor `L_T` is not a square matrix (given shape: "
+            f"The given Cholesky factor `L` is not a square matrix (given shape: "
             f"{L.shape})."
         )
 
@@ -24,7 +24,7 @@ def _validate_update_args(
     # Validate v
     if v.ndim != 1 or v.shape[0] != L.shape[0]:
         raise ValueError(
-            f"The shape of the given vector `v` is compatible with the shape of the "
-            f"given Cholesky factor `L_T`. Expected shape {(L.shape[0],)} but got "
+            f"The shape of the given vector `v` is incompatible with the shape of the "
+            f"given Cholesky factor `L`. Expected shape {(L.shape[0],)} but got "
             f"{v.shape}."
         )

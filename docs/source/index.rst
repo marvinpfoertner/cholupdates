@@ -15,7 +15,6 @@ Rank-1 Modifications
 
 .. automodule:: cholupdates.rank_1
    :members:
-   :imported-members:
 
 Indices and tables
 ==================

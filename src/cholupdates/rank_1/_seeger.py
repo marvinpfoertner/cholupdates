@@ -1,5 +1,5 @@
 """Interface functions for the rank-1 up- and downdate algorithms specified in sections
-2 and 3 of [1].
+2 and 3 of [1]_.
 
 References
 ----------
@@ -51,9 +51,8 @@ def update_seeger(
 
     Parameters
     ----------
-    L :
-        Lower-triangular Cholesky factor of :math:`A` with shape :code:`(N, N)` and
-        dtype :class:`numpy.double`.
+    L : (N, N) numpy.ndarray, dtype=numpy.double
+        Lower-triangular Cholesky factor of :math:`A`.
         Must have a non-zero diagonal.
         The algorithm is most efficient if this array is given in column-major layout,
         a.k.a. Fortran-contiguous or f-contiguous memory order. Hint: Lower-triangular
@@ -64,26 +63,26 @@ def update_seeger(
         of the matrix. This behavior is useful when using the Cholesky factors returned
         by :func:`scipy.linalg.cho_factor` which contain arbitrary values on the
         irrelevant triangular part of the matrix.
-    v :
-        The vector :math:`v` with shape :code:`(N, N)` and dtype :class:`numpy.double`
-        defining the symmetric rank-1 matrix :math:`v v^T`.
+    v : (N,) numpy.ndarray, dtype=numpy.double
+        The vector :math:`v` which defines the symmetric rank-1 update matrix
+        :math:`v v^T`.
     check_diag :
         If set to :code:`True`, the function will check whether the diagonal of the
         given Cholesky factor :code:`L` is non-zero and raise a :class:`ValueError` if
         this is not the case.
-        Setting :code:`check_diag` to `False` can be used to speed up computations if
-        it is clear that the Cholesky factor can not have zeros on its diagonal.
+        Setting :code:`check_diag` to :code:`False` can be used to speed up computations
+        if it is clear that the Cholesky factor can not have zeros on its diagonal.
         Caution: If this argument is set to :code:`False` and the Cholesky factor does
         contain zeros on its diagonal, the behavior of the function will be undefined.
     overwrite_L :
         If set to :code:`True`, the function will overwrite the array :code:`L` with the
         upper Cholesky factor :math:`L'` of :math:`A'`, i.e. the result is computed
         in-place.
-        Passing `False` here ensures that the array :code:`L` is not modified.
+        Passing :code:`False` here ensures that the array :code:`L` is not modified.
     overwrite_v :
-        If set to `True`, the function will reuse the array :code:`v` as an internal
-        computation buffer, which will modify :code:`v`.
-        Passing `False` here ensures that the array :code:`v` is not modified.
+        If set to :code:`True`, the function will reuse the array :code:`v` as an
+        internal computation buffer, which will modify :code:`v`.
+        Passing :code:`False` here ensures that the array :code:`v` is not modified.
         In this case, an additional array of shape :code:`(N,)` and dtype
         :class:`numpy.double` must be allocated.
     impl :
@@ -95,7 +94,7 @@ def update_seeger(
         - "cython"
             Use the Cython implementation. Throws a :class:`ValueError` if the Cython
             implementation is not available.
-        - "python":
+        - "python"
             Use the Python implementation.
 
         Defaults to None.

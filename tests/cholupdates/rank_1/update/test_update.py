@@ -124,9 +124,9 @@ def test_ill_conditioned_matrix(A, A_eigh, L, method):
     number of the updated matrix."""
     spectrum, Q = A_eigh
 
-    # Generate adverse update vector
+    # Generate adverse update vector, which increases the condition number by 100000
     v = Q[:, -1]  # Select eigenvector corresponding to largest eigenvalue
-    v *= np.sqrt(spectrum[-1] * 100000)  # Update multiplies condition number by 100000
+    v *= np.sqrt(spectrum[-1] * (100000.0 - 1.0))
 
     # Compute update
     L_upd = cholupdates.rank_1.update(L, v, method=method)

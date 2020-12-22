@@ -11,21 +11,31 @@ from typing import Optional
 import numpy as np
 
 from ._arg_validation import _validate_update_args
+from ._seeger_impl_python import downdate as _downdate_impl_python
 from ._seeger_impl_python import update as _update_impl_python
 
+# Check if Cython implementations are available
+_cython_available = False
+
 _update_available_impls = ["python"]
+_update_impl_default = _update_impl_python
+
+_downdate_available_impls = ["python"]
+_downdate_impl_default = _downdate_impl_python
 
 try:
+    from ._seeger_impl_cython import downdate as _downdate_impl_cython
     from ._seeger_impl_cython import update as _update_impl_cython
 
     _cython_available = True
+
     _update_available_impls.append("cython")
-
     _update_impl_default = _update_impl_cython
-except ImportError:
-    _cython_available = False
 
-    _update_impl_default = _update_impl_python
+    _downdate_available_impls.append("cython")
+    _downdate_impl_default = _downdate_impl_cython
+except ImportError:
+    pass
 
 
 def update_seeger(
@@ -265,3 +275,283 @@ def update_seeger(
 
 
 update_seeger.available_impls = _update_available_impls
+
+
+def downdate_seeger(
+    L: np.ndarray,
+    v: np.ndarray,
+    check_diag: bool = True,
+    overwrite_L: bool = False,
+    overwrite_v: bool = False,
+    impl: Optional[str] = None,
+):
+    r"""Update a Cholesky factorization after addition of a negative semidefinite
+    symmetric rank-1 matrix using the algorithm from section 3 of [1]_.
+
+    In other words, given :math:`A = L L^T \in \mathbb{R}^{N \times N}` and
+    :math:`v \in \mathbb{R}^N`, compute :math:`L'` such that
+
+    .. math::
+        A' := A - v v^T = L' L'^T.
+
+    This function computes the Cholesky factorization of :math:`A'` from :math:`L` in
+    :math:`O(N^2)` time, which is faster than the :math:`O(N^3)` time complexity of
+    naively applying a Cholesky algorithm to :math:`A'` directly.
+
+    Notes
+    -----
+    This function implements the algorithm from [1]_, section 2.
+    In the following, we will elaborate on the theory behind the algorithm.
+    Let :math:`A \in \mathbb{R}^{n \times n}` be symmetric and positive-definite, and
+    :math:`v \in \mathbb{R}^n`.
+    The vector :math:`v` defines a symmetric rank-1 downdate :math:`-v v^T` to
+    :math:`A`, i.e.
+
+    .. math::
+        A' := A - v v^T.
+
+    Note that :math:`A'` need not be positive definite.
+    In the following, we will derive an efficient criterion to check whether :math:`A'`
+    is positive definite.
+    For the derivation of the algorithm, we assume that :math:`A'` is positive definite.
+
+    Assume that the Cholesky factorization of :math:`A`, i.e. a lower-triangular matrix
+    :math:`L \in \mathbb{R}^{n \times n}` with :math:`A = L L^T`, is given.
+    We want to find a fast and stable method to update the Cholesky factorization
+    :math:`L L^T` of :math:`A` to the Cholesky factorization :math:`A' = L' L'^T` of the
+    updated matrix :math:`A'`, where, again, :math:`L' \in \mathbb{R}^{n \times n}` is
+    lower-triangular.
+
+    If we can construct an orthogonal transformation
+    :math:`Q \in \mathbb{R}^{(n + 1) \times (n + 1)}` such that
+
+    .. math::
+        :label: Q-constraint-L
+
+        \begin{pmatrix}
+            L & 0
+        \end{pmatrix}
+        Q^T
+        =
+        \begin{pmatrix}
+            L' & v
+        \end{pmatrix},
+
+    for some lower-triangular matrix :math:`L'`, then
+
+    .. math::
+        L' L'^T + v v^T
+        =
+        \begin{pmatrix}
+            L' & v
+        \end{pmatrix}
+        \begin{pmatrix}
+            L' & v
+        \end{pmatrix}^T
+        =
+        \begin{pmatrix}
+            L & 0
+        \end{pmatrix}
+        \underbrace{Q^T Q}_{= I}
+        \begin{pmatrix}
+            L^T \\
+            0
+        \end{pmatrix}
+        = L L^T,
+
+    which is equivalent to :math:`L' L'^T = L L^T - v v^T`.
+    This means that we can retrieve the updated Cholesky factor as
+    :math:`L' = L \cdot Q_{1:n, 1:n}^T`.
+
+    In the remainder of this section, we will derive another constraint on :math:`Q`
+    which will directly give rise to an algorithm to compute :math:`Q`.
+
+    If we multiply equation :eq:`Q-constraint-L` with the standard basis vector
+    :math:`e_{n + 1} \in \mathbb{R}^{n + 1}` from the right-hand side, we arrive at
+
+    .. math::
+        \begin{pmatrix}
+            L & 0
+        \end{pmatrix}
+        \underbrace{Q^T e_{n + 1}}_{=: q}
+        =
+        v.
+
+    With :math:`p := q_{1:n} \in \mathbb{R}^n`, this implies :math:`L p = v`, i.e.
+    :math:`p = L^{-1} v`, since :math:`L` is invertible.
+
+    The vector :math:`p` can be used to cheaply check whether the downdate results in a
+    positive definite matrix, since :math:`p^T p < 1` if and only if :math:`A'` is
+    positive definite.
+    To see this, note that :math:`L` is invertible and that :math:`A'` is hence
+    positive definite if and only if
+
+    .. math::
+        L^{-1} A' L^{-T}
+        = L^{-1} (L L^T - v v^T) L^{-T}
+        = I - (L^{-1} v) (v^T L^{-T})
+        = I - p p^T
+
+    is positive definite.
+    One can show that the eigenvectors of :math:`I - p p^T` are given by any :math:`v`
+    in the orthogonal complement of :math:`p` with eigenvalue :math:`1 > 0` and
+    :math:`p` with eigenvalue :math:`1 - p^T p`.
+    Hence, :math:`I - p p^T` is positive definite if and only if :math:`p^T p < 1`.
+
+    In order to find :math:`q_{n + 1}`, we note that
+
+    .. math::
+        \lVert q \rVert_2^2
+        = e_{n + 1}^T \underbrace{Q^T Q}_{= I} e_{n + 1}
+        = e_{n + 1}^T e_{n + 1}
+        = 1,
+
+    which implies
+
+    .. math::
+        1
+        =\lVert q \rVert_2^2
+        = p^T p + q_{n + 1}^2
+        \quad \Leftrightarrow \quad
+        q_{n + 1}^2 = 1 - p^T p.
+
+    Note that this is well-defined, since :math:`A'` is assumed to be positive definite,
+    which means that :math:`p^T p < 1`, i.e. :math:`1 - p^T p > 0`.
+    All in all, our additional constraint on :math:`Q` can be formulated as
+
+    .. math::
+        :label: Q-constraint-q
+
+        Q q = e_{n + 1}
+        \quad
+        \text{with}
+        \quad
+        q =
+        \begin{pmatrix}
+            p \\
+            \rho
+        \end{pmatrix},
+        \quad
+        L p = v,
+        \quad
+        \text{and}
+        \quad
+        \rho^2 := 1 - p^T p.
+
+    From this constraint, we can now generate the desired orthogonal matrix :math:`Q` in
+    a principled way.
+    Obviously, there are multiple different orthogonal matrices which fulfill
+    :eq:`Q-constraint-q`.
+    However, our particular choice must also fulfill :eq:`Q-constraint-L`.
+    One particular way to construct :math:`Q` is as a sequence of Givens rotations
+    :math:`Q = Q_1 \dotsb Q_n`, where :math:`Q_i` eliminates the :math:`i`-th entry of
+
+    .. math::
+        q^{(i + 1)} = \left( \prod_{j = i + 1}^n Q_j \right) q
+
+    with :math:`q^{(i + 1)}_{n + 1}`, i.e. :math:`Q_i` transforms :math:`q^{(i + 1)}`
+    to :math:`q^{(i)}` with :math:`q^{(i)}_i = 0` and
+
+    .. math::
+        q^{(i)}_{n + 1}
+        = \sqrt{(q^{(i + 1)}_i)^2 + (q^{(i + 1)}_{n + 1})^2},
+
+    while preserving all other entries.
+
+    Obviously, this choice of :math:`Q` fulfills :eq:`Q-constraint-q` and we can show by
+    induction that it also fulfills :eq:`Q-constraint-L`.
+    Denote
+
+    .. math::
+        \begin{pmatrix}
+            L^{(i)} & v^{(i)}
+        \end{pmatrix}
+        & :=
+        \begin{pmatrix}
+            L & 0
+        \end{pmatrix}
+        \left( Q_i \dotsb Q_n \right)^T
+        \\
+        & =
+        \begin{pmatrix}
+            L & 0
+        \end{pmatrix}
+        Q_n^T \dotsb Q_i^T
+        \\
+        & =
+        \begin{pmatrix}
+            L^{(i + 1)} & v^{(i + 1)}
+        \end{pmatrix}
+        Q_i^T.
+
+    For :math:`i = n + 1`, we have :math:`L^{(i)} = L`, which is lower-triangular, and
+    :math:`v^{(i)} = 0`, i.e. the first :math:`i - 1` components of :math:`v^{(i)}`
+    contain zeros.
+    Now assume that :math:`L^{(i + 1)}` is lower triangular and that the first
+    :math:`(i + 1) - 1` components of :math:`v^{(i + 1)}` are zeros.
+
+    .. math::
+        &
+        \begin{pmatrix}
+            L^{(i)} & v^{(i)}
+        \end{pmatrix} \\
+        = \ &
+        \begin{pmatrix}
+            L^{(i + 1)} & v^{(i + 1)}
+        \end{pmatrix}
+        Q_i^T \\
+        = \ &
+        \begin{pmatrix}
+            L_{1:(i - 1), 1:(i - 1)}^{(i + 1)} & 0 & 0 & 0 \\
+            L_{i, 1:(i - 1)}^{(i + 1)} & L_{ii}^{(i + 1)} & 0 & 0 \\
+            L_{(i + 1):n, 1:i}^{(i + 1)} & L_{(i + 1):n, i}^{(i + 1)} &
+            L_{(i + 1):n, (i + 1):n}^{(i + 1)} & v_{(i + 1):n}^{(i + 1)} \\
+        \end{pmatrix}
+        \cdot
+        \begin{pmatrix}
+            I &  0   & 0 & 0 \\
+            0 &  c_i & 0 & s_i \\
+            0 &  0   & I & 0 \\
+            0 & -s_i & 0 & c_i \\
+        \end{pmatrix} \\
+        = \ &
+        \begin{pmatrix}
+            L_{1:(i - 1), 1:(i - 1)}^{(i + 1)} & 0 & 0 & 0 \\
+            L_{i, 1:(i - 1)}^{(i + 1)} & L_{ii}^{(i)} & 0 & v_i^{(i)} \\
+            L_{(i + 1):n, 1:i}^{(i + 1)} & L_{(i + 1):n, i}^{(i)}
+            & L_{(i + 1):n, (i + 1):n}^{(i + 1)} & v_{(i + 1):n}^{(i)} \\
+        \end{pmatrix},
+
+    where the :math:`0` and :math:`I` blocks are chosen such that the matrix product
+    makes sense.
+    One can now read off that :math:`L^{(i)}` is lower-triangular and that the first
+    :math:`i - 1` entries of :math:`v^{(i)}` are zeros.
+    By induction, we can thus conclude that :math:`L^{(1)} = LQ^T` is lower-triangular.
+    Moreover, since :math:`Q` also fulfills :eq:`Q-constraint-q`, we know that
+    :math:`v^{(1)} = v`.
+    It follows that
+
+    .. math::
+        \begin{pmatrix}
+            L & 0
+        \end{pmatrix}
+        Q^T
+        =
+        \begin{pmatrix}
+            L' & v
+        \end{pmatrix},
+
+    i.e. :math:`L' = L Q_{1:n, 1:n}^T`.
+
+    Note that this algorithm is a minor modification of the `LINPACK` [2]_ routine
+    :code:`dchud`. The exact modifications are described in [1]_.
+
+    References
+    ----------
+    .. [1] M. Seeger, "Low Rank Updates for the Cholesky Decomposition", 2008.
+    .. [2] J. Dongarra, C. Moler, J. Bunch, and G. Steward. "LINPACK User's Guide".
+        Society for Industrial and Applied Mathematics, 1979.
+    """
+
+
+downdate_seeger.available_impls = _downdate_available_impls

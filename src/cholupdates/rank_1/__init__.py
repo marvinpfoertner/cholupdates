@@ -26,6 +26,7 @@ from ._downdate import downdate  # isort: skip
 
 # Concrete update functions
 from ._seeger import update_seeger  # isort: skip
+from ._seeger import downdate_seeger  # isort: skip
 
 __all__ = [
     "update",

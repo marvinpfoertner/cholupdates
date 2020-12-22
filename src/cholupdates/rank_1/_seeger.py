@@ -284,7 +284,7 @@ def downdate_seeger(
     overwrite_L: bool = False,
     overwrite_v: bool = False,
     impl: Optional[str] = None,
-):
+) -> np.ndarray:
     r"""Update a Cholesky factorization after addition of a negative semidefinite
     symmetric rank-1 matrix using the algorithm from section 3 of [1]_.
 
@@ -552,6 +552,46 @@ def downdate_seeger(
     .. [2] J. Dongarra, C. Moler, J. Bunch, and G. Steward. "LINPACK User's Guide".
         Society for Industrial and Applied Mathematics, 1979.
     """
+
+    # Validate arguments
+    _validate_update_args(L, v, check_diag)
+
+    if L.dtype != np.double:
+        raise TypeError(
+            f"The given Cholesky factor `L` does not have dtype `np.double` (given "
+            f"dtype: {L.dtype.name})"
+        )
+
+    if v.dtype != np.double:
+        raise TypeError(
+            f"The given vector `v` does not have dtype `np.double` (given dtype: "
+            f"{L.dtype.name})"
+        )
+
+    # Copy on demand
+    if not overwrite_L:
+        L = L.copy(order="K")
+
+    if not overwrite_v:
+        v = v.copy()
+
+    # Downdate L
+    if impl is None:
+        _downdate_impl_default(L, v)
+    elif impl == "cython":
+        try:
+            _downdate_impl_cython(L, v)
+        except NameError as ne:
+            raise ValueError("The Cython implementation is not available.") from ne
+    elif impl == "python":
+        _downdate_impl_python(L, v)
+    else:
+        raise ValueError(
+            f"Unknown implementation '{impl}'. Available implementations: "
+            f"{', '.join(_update_available_impls)}"
+        )
+
+    return L
 
 
 downdate_seeger.available_impls = _downdate_available_impls

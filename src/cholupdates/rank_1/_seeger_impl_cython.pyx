@@ -1,10 +1,14 @@
-""" Cython implementation of the symmetric rank-1 update algorithm from section 2 in
-[1].
+"""Cython implementation of the symmetric rank-1 up- and downdate algorithms from
+sections 2 and 3 in [1]_.
 
 References
 ----------
 .. [1] M. Seeger, "Low Rank Updates for the Cholesky Decomposition", 2008.
 """
+
+from libc.math cimport sqrt
+
+import numpy as np
 
 cimport cython
 cimport scipy.linalg.cython_blas
@@ -150,3 +154,62 @@ cpdef void update(
 
     if L_ptr[0] < 0.0:
         L_ptr[0] = -L_ptr[0]
+
+
+@cython.boundscheck(False)  # Deactivate bounds checking
+@cython.wraparound(False)   # Deactivate negative indexing
+cpdef void downdate(
+    double[:, :] L,
+    double[::1] v,
+):
+    cdef int N = L.shape[0]
+    cdef int k
+
+    cdef double[::1] p
+    cdef char dtrsv_uplo = b'L'
+    cdef char dtrsv_trans = b'N'
+    cdef char dtrsv_diag = b'N'
+    cdef int dtrsv_incx = 1
+
+    cdef double rho
+    cdef int ddot_incxy = 1
+
+    cdef double[::1] temp = np.zeros(N, dtype=np.double)
+
+    cdef double c
+    cdef double s
+
+    cdef int drot_incxy = 1
+
+    # Solve triangular system
+    scipy.linalg.cython_blas.dtrsv(
+        &dtrsv_uplo,
+        &dtrsv_trans,
+        &dtrsv_diag,
+        &N,
+        &L[0, 0],
+        &N,
+        &v[0],
+        &dtrsv_incx,
+    )
+
+    p = v
+
+    # Compute rho
+    rho = sqrt(
+        1 - scipy.linalg.cython_blas.ddot(&N, &p[0], &ddot_incxy, &p[0], &ddot_incxy)
+    )
+
+    for k in range(N - 1, -1, -1):
+        scipy.linalg.cython_blas.drotg(&rho, &p[k], &c, &s)
+
+        # TODO: This works only for row-major R
+        scipy.linalg.cython_blas.drot(
+            &N,
+            &temp[0],
+            &drot_incxy,
+            &L[k, 0],
+            &drot_incxy,
+            &c,
+            &s
+        )

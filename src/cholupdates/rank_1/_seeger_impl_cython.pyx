@@ -6,7 +6,7 @@ References
 .. [1] M. Seeger, "Low Rank Updates for the Cholesky Decomposition", 2008.
 """
 
-from libc.math cimport sqrt
+cimport libc.math
 
 import numpy as np
 
@@ -19,7 +19,7 @@ cimport scipy.linalg.cython_blas
 cpdef void update(
     double[:, :] L,
     double[::1] v,
-):
+) except *:
     """Cython implementation of the rank-1 update algorithm from section 2 in [1]_.
 
     Warning: The validity of the arguments will not be checked by this method, so
@@ -161,55 +161,118 @@ cpdef void update(
 cpdef void downdate(
     double[:, :] L,
     double[::1] v,
-):
+) except *:
     cdef int N = L.shape[0]
-    cdef int k
 
-    cdef double[::1] p
-    cdef char dtrsv_uplo = b'L'
-    cdef char dtrsv_trans = b'N'
+    # Define pointers into the raw memory buffers
+    cdef double* L_ptr = &L[0, 0]
+    cdef double* v_ptr = &v[0]
+
+    # Extract strides from memory layout. These are used for pointer arithmetic.
+    cdef int L_row_stride
+    cdef int L_col_stride
+
+    if L.is_f_contig():
+        L_row_stride = 1
+        L_col_stride = N
+    elif L.is_c_contig():
+        L_row_stride = N
+        L_col_stride = 1
+    else:
+        raise ValueError(
+            "Unsupported memory layout. L should either be Fortran- or C-contiguous"
+        )
+
+    cdef int v_stride = 1
+
+    # Solve triangular system L * p = v
+    cdef char dtrsv_uplo
+    cdef char dtrsv_trans
+
+    if L.is_f_contig():
+        dtrsv_uplo = b'L'
+        dtrsv_trans = b'N'
+    elif L.is_c_contig():
+        dtrsv_uplo = b'U'
+        dtrsv_trans = b'T'
+
     cdef char dtrsv_diag = b'N'
-    cdef int dtrsv_incx = 1
 
-    cdef double rho
-    cdef int ddot_incxy = 1
-
-    cdef double[::1] temp = np.zeros(N, dtype=np.double)
-
-    cdef double c
-    cdef double s
-
-    cdef int drot_incxy = 1
-
-    # Solve triangular system
     scipy.linalg.cython_blas.dtrsv(
         &dtrsv_uplo,
         &dtrsv_trans,
         &dtrsv_diag,
         &N,
-        &L[0, 0],
+        L_ptr,
         &N,
-        &v[0],
-        &dtrsv_incx,
+        v_ptr,
+        &v_stride,
     )
 
-    p = v
+    # The memory buffer for v now contains p
+    cdef double* p_ptr = v_ptr
+    cdef int p_stride = v_stride
 
-    # Compute rho
-    rho = sqrt(
-        1 - scipy.linalg.cython_blas.ddot(&N, &p[0], &ddot_incxy, &p[0], &ddot_incxy)
+    # Compute rho = √(1 - p^T p)
+    cdef double p_norm_sq = scipy.linalg.cython_blas.ddot(
+        &N,
+        p_ptr,
+        &p_stride,
+        p_ptr,
+        &p_stride
     )
 
-    for k in range(N - 1, -1, -1):
-        scipy.linalg.cython_blas.drotg(&rho, &p[k], &c, &s)
+    cdef double rho_sq = 1.0 - p_norm_sq
 
-        # TODO: This works only for row-major R
+    if rho_sq <= 0.0:
+        raise np.linalg.LinAlgError("The downdated matrix is not positive definite.")
+
+    cdef double rho = libc.math.sqrt(rho_sq)
+
+    # Stack p and rho into q = (p, rho)^T
+    cdef double* q_ptr = p_ptr
+    cdef int q_stride = p_stride
+
+    cdef double q_np1 = rho
+
+    # Temporary storage
+    cdef double[::1] temp = np.zeros(N, dtype=np.double)
+
+    cdef double* temp_ptr = &temp[0]
+    cdef int temp_stride = 1
+
+    # c and s will contain the cosine and sine terms that define the Givens rotations
+    # in the loop
+    cdef double c
+    cdef double s
+
+    # Initialize loop variables
+    cdef int k = N - 1
+
+    q_ptr += k * q_stride
+    L_ptr += k * (L_row_stride + L_col_stride)
+    temp_ptr += k * temp_stride
+
+    cdef int drot_n = 1
+
+    while k >= 0:
+        scipy.linalg.cython_blas.drotg(&q_np1, q_ptr, &c, &s)
+
         scipy.linalg.cython_blas.drot(
-            &N,
-            &temp[0],
-            &drot_incxy,
-            &L[k, 0],
-            &drot_incxy,
+            &drot_n,
+            temp_ptr,
+            &temp_stride,
+            L_ptr,
+            &L_row_stride,
             &c,
-            &s
+            &s,
         )
+
+        # Advance loop variables
+        k -= 1
+
+        q_ptr -= q_stride
+        L_ptr -= L_row_stride + L_col_stride
+        temp_ptr -= temp_stride
+
+        drot_n += 1

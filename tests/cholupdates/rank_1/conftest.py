@@ -23,12 +23,6 @@ def random_state(request):
     return np.random.RandomState(seed=request.param)
 
 
-@pytest.fixture(params=["cho_factor", "seeger_python", "seeger_cython"])
-def method(request) -> str:
-    """The update algorithm to be tested."""
-    return request.param
-
-
 @pytest.fixture()
 def A_eigh(
     N: int, random_state: np.random.RandomState

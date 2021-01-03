@@ -285,18 +285,106 @@ def downdate_seeger(
     overwrite_v: bool = False,
     impl: Optional[str] = None,
 ) -> np.ndarray:
-    r"""Update a Cholesky factorization after addition of a negative semidefinite
+    r"""Update a Cholesky factorization after subtraction of a positive semidefinite
     symmetric rank-1 matrix using the algorithm from section 3 of [1]_.
 
-    In other words, given :math:`A = L L^T \in \mathbb{R}^{N \times N}` and
+    In other words, given :math:`A = L L^T \in \mathbb{R}^{N \times N}`, and
     :math:`v \in \mathbb{R}^N`, compute :math:`L'` such that
 
     .. math::
         A' := A - v v^T = L' L'^T.
 
+    Note that the Cholesky factorization of the downdated matrix may not exist, since a
+    downdate might result in a matrix which is not positive definite.
+
     This function computes the Cholesky factorization of :math:`A'` from :math:`L` in
     :math:`O(N^2)` time, which is faster than the :math:`O(N^3)` time complexity of
     naively applying a Cholesky algorithm to :math:`A'` directly.
+
+    Parameters
+    ----------
+    L : (N, N) numpy.ndarray, dtype=numpy.double
+        Lower-triangular Cholesky factor of :math:`A`.
+        Must have a non-zero diagonal.
+        The algorithm is most efficient if this array is given in column-major layout,
+        a.k.a. Fortran-contiguous or f-contiguous memory order. Hint: Lower-triangular
+        Cholesky factors in column-major memory layout can be obtained efficiently (i.e.
+        without requiring an additional copy) from :func:`scipy.linalg.cho_factor`.
+        The entries in the strict upper-triangular part of :code:`L` can contain
+        arbitrary values, since the algorithm neither reads from nor writes to this part
+        of the matrix. This behavior is useful when using the Cholesky factors returned
+        by :func:`scipy.linalg.cho_factor` which contain arbitrary values on the
+        irrelevant triangular part of the matrix.
+    v : (N,) numpy.ndarray, dtype=numpy.double
+        The vector :math:`v` which defines the symmetric rank-1 downdate matrix
+        :math:`v v^T`.
+    check_diag :
+        If set to :code:`True`, the function will check whether the diagonal of the
+        given Cholesky factor :code:`L` is non-zero and raise a :class:`ValueError` if
+        this is not the case.
+        Setting :code:`check_diag` to :code:`False` can be used to speed up computations
+        if it is clear that the Cholesky factor can not have zeros on its diagonal.
+        Caution: If this argument is set to :code:`False` and the Cholesky factor does
+        contain zeros on its diagonal, the behavior of the function will be undefined.
+    overwrite_L :
+        If set to :code:`True`, the function will overwrite the array :code:`L` with the
+        upper Cholesky factor :math:`L'` of :math:`A'`, i.e. the result is computed
+        in-place.
+        Passing :code:`False` here ensures that the array :code:`L` is not modified.
+    overwrite_v :
+        If set to :code:`True`, the function will reuse the array :code:`v` as an
+        internal computation buffer, which will modify :code:`v`.
+        Passing :code:`False` here ensures that the array :code:`v` is not modified.
+        In this case, an additional array of shape :code:`(N,)` and dtype
+        :class:`numpy.double` must be allocated.
+    impl :
+        Defines which implementation of the algorithm to use. Must be one of
+
+        - :class:`None`
+            Choose the Cython implementation if it is available, otherwise use the
+            Python implementation.
+        - "cython"
+            Use the Cython implementation. Throws a :class:`ValueError` if the Cython
+            implementation is not available.
+        - "python"
+            Use the Python implementation.
+
+        Defaults to None.
+
+    Returns
+    -------
+    (N, N) numpy.ndarray, dtype=numpy.double
+        Lower-triangular Cholesky factor :math:`L'` of :math:`A - v v^T` with shape
+        :code:`(N, N)` and dtype :class:`numpy.double`.
+        The diagonal entries of this matrix are guaranteed to be positive.
+        The strict upper-triangular part of this matrix will contain the values from the
+        upper-triangular part of :code:`L`.
+        The matrix will inherit the memory order from :code:`L`.
+
+    Raises
+    ------
+    ValueError
+        If :code:`L` does not have shape :code:`(N, N)` for some :code:`N`.
+    numpy.linalg.LinAlgError
+        If the diagonal of :code:`L` contains zeros and :code:`check_diag` is set to
+        true.
+    ValueError
+        If :code:`v` does not have shape :code:`(N,)`, while :code:`L` has shape
+        :code:`(N, N)`.
+    TypeError
+        If :code:`L` does not have dtype :class:`numpy.double`.
+    TypeError
+        If :code:`v` does not have dtype :class:`numpy.double`.
+    ValueError
+        If :code:`impl` was set to :code:`"cython"`, but the Cython implementation is
+        not available.
+    numpy.linalg.LinAlgError
+        If the downdate results in a matrix :math:`L'`, which is not positive definite.
+
+    See Also
+    --------
+    cholupdates.rank_1.downdate : Interface function for all rank-1 downdate methods.
+        Can be used to call this function conveniently.
 
     Notes
     -----
@@ -544,7 +632,7 @@ def downdate_seeger(
     i.e. :math:`L' = L Q_{1:n, 1:n}^T`.
 
     Note that this algorithm is a minor modification of the `LINPACK` [2]_ routine
-    :code:`dchud`. The exact modifications are described in [1]_.
+    :code:`dchdd`. The exact modifications are described in [1]_.
 
     References
     ----------

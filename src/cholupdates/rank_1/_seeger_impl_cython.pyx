@@ -246,6 +246,8 @@ cpdef void downdate(
     cdef double c
     cdef double s
 
+    cdef double m1 = -1.0
+
     # Initialize loop variables
     cdef int k = N - 1
 
@@ -258,6 +260,11 @@ cpdef void downdate(
     while k >= 0:
         scipy.linalg.cython_blas.drotg(&q_np1, q_ptr, &c, &s)
 
+        if q_np1 < 0.0:
+            q_np1 = -q_np1
+            c = -c
+            s = -s
+
         scipy.linalg.cython_blas.drot(
             &drot_n,
             temp_ptr,
@@ -267,6 +274,14 @@ cpdef void downdate(
             &c,
             &s,
         )
+
+        if L_ptr[0] < 0.0:
+            scipy.linalg.cython_blas.dscal(
+                &drot_n,
+                &m1,
+                L_ptr,
+                &L_row_stride,
+            )
 
         # Advance loop variables
         k -= 1

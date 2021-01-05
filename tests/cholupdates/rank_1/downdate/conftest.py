@@ -6,31 +6,30 @@ from typing import Any, Dict
 
 import numpy as np
 import pytest
+import scipy.linalg
 
 import cholupdates
 
 
 @pytest.fixture
-def v(N: int, A_eigh, random_state: np.random.RandomState) -> np.ndarray:
+def v(N: int, L: np.ndarray, random_state: np.random.RandomState) -> np.ndarray:
     """Random vector of shape :func:`N` which defines a symmetric rank-1 downdate to
     :func:`A`"""
-
-    Lambda, Q = A_eigh
 
     # Sample random direction
     v_dir = random_state.normal(size=N)
     v_dir /= np.linalg.norm(v_dir, ord=2)
 
-    # Project direction onto eigenvectors
-    v_dir_eigen = Q.T @ v_dir
+    # The downdated matrix is positive semi-definite if and only if p^T p < 1 for
+    # L * p = v. Hence, a vector v = ||v||_2 * u, where `u` is a unit vector leads to a
+    # valid downdate if ||v||_2^2 < (1 / p^T p).
+    p_dir = scipy.linalg.solve_triangular(L, v_dir, lower=True)
 
-    # Compute maximum squared norm of downdate
-    v_max_sq_norm = np.sqrt(v_dir @ (Lambda * v_dir))
+    v_norm_sq = random_state.uniform(0.2, 0.9) / np.dot(p_dir, p_dir)
 
-    # Choose norm of downdate
-    v_norm = np.sqrt(0.5 * v_max_sq_norm)
+    v_norm = np.sqrt(v_norm_sq)
 
-    return v_norm * v_dir_eigen
+    return v_norm * v_dir
 
 
 @pytest.fixture

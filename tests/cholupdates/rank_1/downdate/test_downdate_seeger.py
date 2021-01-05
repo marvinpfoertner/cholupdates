@@ -6,7 +6,9 @@ import pytest
 import cholupdates
 
 
-@pytest.mark.parametrize("impl", cholupdates.rank_1.downdate_seeger.available_impls)
+@pytest.mark.parametrize(
+    "impl", [None] + cholupdates.rank_1.downdate_seeger.available_impls
+)
 def test_memory_order(L: np.ndarray, v: np.ndarray, impl: str):
     """Assert that the resulting array has the same memory order as the input array"""
 
@@ -25,7 +27,7 @@ def test_memory_order(L: np.ndarray, v: np.ndarray, impl: str):
         (L_dtype, v_dtype, impl)
         for L_dtype in [np.float64, np.float32, np.float16, np.complex64, np.int64]
         for v_dtype in [np.float64, np.float32, np.float16, np.complex64, np.int64]
-        for impl in cholupdates.rank_1.update_seeger.available_impls
+        for impl in [None] + cholupdates.rank_1.downdate_seeger.available_impls
         # There seems to be a bug in pylint, since it marks `L_dtype` and `v_dtype` as
         # undefined here
         # pylint: disable=undefined-variable

@@ -2,6 +2,8 @@
 
 # pylint: disable=redefined-outer-name
 
+from typing import Any, Dict
+
 import numpy as np
 import pytest
 
@@ -38,14 +40,21 @@ def A_prime(A: np.ndarray, v: np.ndarray) -> np.ndarray:
     return A - np.outer(v, v)
 
 
-@pytest.fixture(params=["cho_factor", "seeger_python", "seeger_cython"])
-def method(request) -> str:
+@pytest.fixture(
+    params=[
+        pytest.param({"method": "cho_factor"}, id="cho_factor"),
+        pytest.param({"method": "seeger"}, id="seeger_default"),
+        pytest.param({"method": "seeger", "impl": "python"}, id="seeger_python"),
+        pytest.param({"method": "seeger", "impl": "cython"}, id="seeger_cython"),
+    ]
+)
+def method_kwargs(request) -> Dict[str, Any]:
     """The downdate algorithm to be tested."""
     return request.param
 
 
 @pytest.fixture
-def L_prime(L: np.ndarray, v: np.ndarray, method: str) -> np.ndarray:
+def L_prime(L: np.ndarray, v: np.ndarray, method_kwargs: Dict[str, Any]) -> np.ndarray:
     """Lower cholesky factor of :func:`A_prime` computed via
     :func:`cholupdates.rank_1.downdate`"""
     return cholupdates.rank_1.downdate(
@@ -53,5 +62,5 @@ def L_prime(L: np.ndarray, v: np.ndarray, method: str) -> np.ndarray:
         v=v.copy(),
         overwrite_L=True,
         overwrite_v=True,
-        method=method,
+        **method_kwargs,
     )

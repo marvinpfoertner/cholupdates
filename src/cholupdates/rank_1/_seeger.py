@@ -388,7 +388,7 @@ def downdate_seeger(
 
     Notes
     -----
-    This function implements the algorithm from [1]_, section 2.
+    This function implements the algorithm from [1]_, section 3.
     In the following, we will elaborate on the theory behind the algorithm.
     Let :math:`A \in \mathbb{R}^{n \times n}` be symmetric and positive-definite, and
     :math:`v \in \mathbb{R}^n`.
@@ -481,7 +481,7 @@ def downdate_seeger(
         = I - p p^T
 
     is positive definite.
-    One can show that the eigenvectors of :math:`I - p p^T` are given by any :math:`v`
+    One can show that the eigenvectors of :math:`I - p p^T` are given by any :math:`u`
     in the orthogonal complement of :math:`p` with eigenvalue :math:`1 > 0` and
     :math:`p` with eigenvalue :math:`1 - p^T p`.
     Hence, :math:`I - p p^T` is positive definite if and only if :math:`p^T p < 1`.
@@ -490,7 +490,7 @@ def downdate_seeger(
 
     .. math::
         \lVert q \rVert_2^2
-        = e_{n + 1}^T \underbrace{Q^T Q}_{= I} e_{n + 1}
+        = e_{n + 1}^T \underbrace{Q Q^T}_{= I} e_{n + 1}
         = e_{n + 1}^T e_{n + 1}
         = 1,
 
@@ -614,7 +614,8 @@ def downdate_seeger(
     makes sense.
     One can now read off that :math:`L^{(i)}` is lower-triangular and that the first
     :math:`i - 1` entries of :math:`v^{(i)}` are zeros.
-    By induction, we can thus conclude that :math:`L^{(1)} = LQ^T` is lower-triangular.
+    By induction, we can thus conclude that :math:`L^{(1)} = LQ^T_{1:n, 1:n}` is
+    lower-triangular.
     Moreover, since :math:`Q` also fulfills :eq:`Q-constraint-q`, we know that
     :math:`v^{(1)} = v`.
     It follows that

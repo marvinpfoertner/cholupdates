@@ -18,7 +18,7 @@ def test_positive_diagonal(L_prime: np.ndarray):
     np.testing.assert_array_less(0.0, np.diag(L_prime))
 
 
-def test_upper_triangular_part_not_accessed(L, v, L_prime, method):
+def test_upper_triangular_part_not_accessed(L, v, L_prime, method_kwargs):
     """Assert that the upper triangular part of the Cholesky factor does neither read
     from nor write to the upper triangular part of the Cholesky factor"""
     N = L.shape[0]
@@ -28,7 +28,7 @@ def test_upper_triangular_part_not_accessed(L, v, L_prime, method):
     L_mod = L.copy(order="K")
     L_mod[np.triu_indices(N, k=1)] = np.random.rand((N * (N - 1)) // 2)
 
-    L_mod_upd = cholupdates.rank_1.downdate(L_mod, v, method=method)
+    L_mod_upd = cholupdates.rank_1.downdate(L_mod, v, **method_kwargs)
 
     np.testing.assert_array_equal(
         np.triu(L_mod, k=1),
@@ -52,7 +52,7 @@ def test_upper_triangular_part_not_accessed(L, v, L_prime, method):
 @pytest.mark.parametrize(
     "overwrite_L,overwrite_v", [(False, False), (True, False), (False, True)]
 )
-def test_no_input_mutation(L, v, overwrite_L, overwrite_v, method):
+def test_no_input_mutation(L, v, overwrite_L, overwrite_v, method_kwargs):
     """Test whether the input arrays are left unmodified if the respective overwrite
     flag is set to :code:`False`"""
     L_copy = L.copy(order="K")
@@ -63,7 +63,7 @@ def test_no_input_mutation(L, v, overwrite_L, overwrite_v, method):
         v_copy,
         overwrite_L=overwrite_L,
         overwrite_v=overwrite_v,
-        method=method,
+        **method_kwargs,
     )
 
     if not overwrite_L:
@@ -74,24 +74,26 @@ def test_no_input_mutation(L, v, overwrite_L, overwrite_v, method):
 
 
 @pytest.mark.parametrize("shape", [(3, 2), (3,), (1, 3, 3)])
-def test_raise_on_invalid_cholesky_factor_shape(shape, method):
+def test_raise_on_invalid_cholesky_factor_shape(shape, method_kwargs):
     """Tests whether a :class:`ValueError` is raised if the shape of the Cholesky factor
     is not :code:`(N, N)` for some N"""
     with pytest.raises(ValueError):
         cholupdates.rank_1.downdate(
-            L=np.ones(shape), v=np.ones(shape[-1]), method=method
+            L=np.ones(shape), v=np.ones(shape[-1]), **method_kwargs
         )
 
 
 @pytest.mark.parametrize("shape", [(3, 2), (3, 1), (1, 3, 3)])
-def test_raise_on_invalid_vector_shape(shape, method):
+def test_raise_on_invalid_vector_shape(shape, method_kwargs):
     """Tests whether a :class:`ValueError` is raised if the vector has more than one
     dimension"""
     with pytest.raises(ValueError):
-        cholupdates.rank_1.downdate(L=np.eye(shape[0]), v=np.ones(shape), method=method)
+        cholupdates.rank_1.downdate(
+            L=np.eye(shape[0]), v=np.ones(shape), **method_kwargs
+        )
 
 
-def test_raise_on_vector_dimension_mismatch(L, method):
+def test_raise_on_vector_dimension_mismatch(L, method_kwargs):
     """Tests whether a :class:`ValueError` is raised if the shape of the vector is not
     compatible with the shape of the Cholesky factor"""
     N = L.shape[0]
@@ -105,10 +107,10 @@ def test_raise_on_vector_dimension_mismatch(L, method):
     v = np.random.rand(v_len)
 
     with pytest.raises(ValueError):
-        cholupdates.rank_1.downdate(L=L, v=v, method=method)
+        cholupdates.rank_1.downdate(L=L, v=v, **method_kwargs)
 
 
-def test_raise_on_zero_diagonal(L, v, method):
+def test_raise_on_zero_diagonal(L, v, method_kwargs):
     """Tests whether a :class:`numpy.linalg.LinAlgError` is raised if the diagonal of
     the Cholesky factor contains zeros."""
     L = L.copy(order="K")
@@ -118,10 +120,10 @@ def test_raise_on_zero_diagonal(L, v, method):
     L[k, k] = 0.0
 
     with pytest.raises(np.linalg.LinAlgError):
-        cholupdates.rank_1.downdate(L, v, method=method)
+        cholupdates.rank_1.downdate(L, v, **method_kwargs)
 
 
-def test_raise_on_indefinite_result(L: np.ndarray, A_eigh, method):
+def test_raise_on_indefinite_result(L: np.ndarray, A_eigh, method_kwargs):
     eigvals, eigvecs = A_eigh
 
     # Choose v for failure case
@@ -130,4 +132,4 @@ def test_raise_on_indefinite_result(L: np.ndarray, A_eigh, method):
     v = 2.0 * np.sqrt(eigvals[k]) * eigvecs[:, k]
 
     with pytest.raises(np.linalg.LinAlgError):
-        cholupdates.rank_1.downdate(L, v, method=method)
+        cholupdates.rank_1.downdate(L, v, **method_kwargs)

@@ -23,7 +23,7 @@ def downdate(
     :math:`v \in \mathbb{R}^N`, compute :math:`L'` such that
 
     .. math::
-        A' := A + v v^T = L' L'^T.
+        A' := A - v v^T = L' L'^T.
 
     Parameters
     ----------

@@ -1,7 +1,10 @@
 """Tests for the implementation of symmetric rank-1 downdates to a Cholesky factor"""
 
+from typing import Any, Dict, Tuple
+
 import numpy as np
 import pytest
+import scipy.linalg
 
 import cholupdates
 
@@ -84,7 +87,9 @@ def test_raise_on_invalid_cholesky_factor_shape(shape, method_kwargs):
 
 
 @pytest.mark.parametrize("shape", [(3, 2), (3, 1), (1, 3, 3)])
-def test_raise_on_invalid_vector_shape(shape, method_kwargs):
+def test_raise_on_invalid_vector_shape(
+    shape: Tuple[int, ...], method_kwargs: Dict[str, Any]
+):
     """Tests whether a :class:`ValueError` is raised if the vector has more than one
     dimension"""
     with pytest.raises(ValueError):
@@ -93,29 +98,39 @@ def test_raise_on_invalid_vector_shape(shape, method_kwargs):
         )
 
 
-def test_raise_on_vector_dimension_mismatch(L, method_kwargs):
+def test_raise_on_vector_dimension_mismatch(
+    N: int,
+    L: np.ndarray,
+    random_state: np.random.RandomState,
+    method_kwargs: Dict[str, Any],
+):
     """Tests whether a :class:`ValueError` is raised if the shape of the vector is not
     compatible with the shape of the Cholesky factor"""
-    N = L.shape[0]
 
     # Generate arbitrary v with incompatible length
-    v_len = N + np.random.randint(-N, N) + 1
+    v_len = N + random_state.randint(-N, N) + 1
 
     if v_len == N:
         v_len += 1
 
-    v = np.random.rand(v_len)
+    v = random_state.rand(v_len)
 
     with pytest.raises(ValueError):
         cholupdates.rank_1.downdate(L=L, v=v, **method_kwargs)
 
 
-def test_raise_on_zero_diagonal(L, v, method_kwargs):
+def test_raise_on_zero_diagonal(
+    N: int,
+    L: np.ndarray,
+    v: np.ndarray,
+    random_state: np.random.RandomState,
+    method_kwargs: Dict[str, Any],
+):
     """Tests whether a :class:`numpy.linalg.LinAlgError` is raised if the diagonal of
     the Cholesky factor contains zeros."""
     L = L.copy(order="K")
 
-    k = np.random.randint(L.shape[0])
+    k = random_state.randint(N)
 
     L[k, k] = 0.0
 
@@ -123,13 +138,23 @@ def test_raise_on_zero_diagonal(L, v, method_kwargs):
         cholupdates.rank_1.downdate(L, v, **method_kwargs)
 
 
-def test_raise_on_indefinite_result(L: np.ndarray, A_eigh, method_kwargs):
-    eigvals, eigvecs = A_eigh
+def test_raise_on_indefinite_result(
+    N: int,
+    L: np.ndarray,
+    random_state: np.random.RandomState,
+    method_kwargs: Dict[str, Any],
+):
+    """Tests whether a :class:`numpy.linalg.LinAlgError` is raised if the downdate
+    results in a singular or indefinite result."""
 
-    # Choose v for failure case
-    k = np.random.randint(L.shape[0])
+    # The downdated matrix is positive definite if and only if p^T p < 1 for L * p = v.
+    # Hence, the vector v' := a * v defines an invalid downdate if and only if
+    # a >= (1 / ||p||_2).
+    v = random_state.normal(size=N)
 
-    v = 2.0 * np.sqrt(eigvals[k]) * eigvecs[:, k]
+    p = scipy.linalg.solve_triangular(L, v, lower=True)
+
+    v *= (1.0 + random_state.gamma(shape=2.0, scale=2.0)) / np.linalg.norm(p, ord=2)
 
     with pytest.raises(np.linalg.LinAlgError):
         cholupdates.rank_1.downdate(L, v, **method_kwargs)

@@ -20,9 +20,9 @@ def v(N: int, L: np.ndarray, random_state: np.random.RandomState) -> np.ndarray:
     v_dir = random_state.normal(size=N)
     v_dir /= np.linalg.norm(v_dir, ord=2)
 
-    # The downdated matrix is positive semi-definite if and only if p^T p < 1 for
-    # L * p = v. Hence, a vector v = ||v||_2 * u, where `u` is a unit vector leads to a
-    # valid downdate if ||v||_2^2 < (1 / p^T p).
+    # The downdated matrix is positive definite if and only if p^T p < 1 for L * p = v.
+    # Hence, a vector v = ||v||_2 * u, where `u` is a unit vector leads to a valid
+    # downdate if ||v||_2^2 < (1 / p^T p).
     p_dir = scipy.linalg.solve_triangular(L, v_dir, lower=True)
 
     v_norm_sq = random_state.uniform(0.2, 0.9) / np.dot(p_dir, p_dir)

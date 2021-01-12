@@ -20,14 +20,16 @@ cpdef void update(
     double[:, :] L,
     double[::1] v,
 ) except *:
-    """Cython implementation of the rank-1 update algorithm from section 2 in [1]_.
+    """update(L, v)
+
+    Cython implementation of the rank-1 update algorithm from section 2 in [1]_.
 
     Warning: The validity of the arguments will not be checked by this method, so
     passing invalid argument will result in undefined behavior.
 
     Parameters
     ----------
-    L :
+    L : (N, N) numpy.ndarray, dtype=numpy.double
         The lower-triangular Cholesky factor of the matrix to be updated.
         Must have shape `(N, N)` and dtype `np.double`.
         Must not contain zeros on the diagonal.
@@ -35,7 +37,7 @@ cpdef void update(
         arbitrary values, since the algorithm neither reads from nor writes to this part
         of the matrix.
         Will be overridden with the Cholesky factor of the matrix to be updated.
-    v :
+    v : (N,) numpy.ndarray, dtype=numpy.double
         The vector :math:`v` with shape :code:`(N, N)` and dtype :class:`numpy.double`
         defining the symmetric rank-1 update :math:`v v^T`.
         Will be reused as an internal memory buffer to store intermediate results, and
@@ -162,15 +164,50 @@ cpdef void downdate(
     double[:, :] L,
     double[::1] v,
 ) except *:
+    """downdate(L, v)
+
+    Cython implementation of the rank-1 downdate algorithm from section 3 in [1]_.
+
+    Warning: The validity of the arguments will not be checked by this method, so
+    passing invalid argument will result in undefined behavior.
+
+    Parameters
+    ----------
+    L : (N, N) numpy.ndarray, dtype=numpy.double
+        The lower-triangular Cholesky factor of the matrix to be downdated.
+        Must have shape `(N, N)` and dtype `np.double`.
+        Must not contain zeros on the diagonal.
+        The entries in the strict upper triangular part of :code:`L` can contain
+        arbitrary values, since the algorithm neither reads from nor writes to this part
+        of the matrix
+        Will be overridden with the Cholesky factor of the matrix to be downdated.
+    v : (N,) numpy.ndarray, dtype=numpy.double
+        The vector :math:`v` with shape :code:`(N, N)` and dtype :class:`numpy.double`
+        defining the symmetric rank-1 downdate :math:`v v^T`.
+        Will be reused as an internal memory buffer to store intermediate results, and
+        thus modified.
+
+    Raises
+    ------
+    ValueError
+        If the memory layout of `L` is neither Fortan- nor C-contiguous.
+    numpy.linalg.LinAlgError
+        If the downdate results in a matrix that is not positive definite.
+
+    Notes
+    -----
+    This method allocates an auxiliary buffer of shape :code:`(N,)` and dtype
+    :class:`np.double`.
+
+    References
+    ----------
+    .. [1] M. Seeger, "Low Rank Updates for the Cholesky Decomposition", 2008.
+    """
+
     cdef int N = L.shape[0]
 
-    # Define pointers into the raw memory buffers
-    cdef double* L_ptr = &L[0, 0]
-    cdef double* v_ptr = &v[0]
-
-    # Extract strides from memory layout. These are used for pointer arithmetic.
+    # Extract row stride of `L` from memory layout
     cdef int L_row_stride
-    cdef int L_col_stride
 
     if L.is_f_contig():
         L_row_stride = 1
@@ -183,111 +220,118 @@ cpdef void downdate(
             "Unsupported memory layout. L should either be Fortran- or C-contiguous"
         )
 
-    cdef int v_stride = 1
+    # Define auxiliary variables for BLAS calls
+    cdef int stride_1 = 1
+    cdef double neg_1 = -1.0
 
-    # Solve triangular system L * p = v
+    # Compute p by solving L @ p = v
     cdef char dtrsv_uplo
     cdef char dtrsv_trans
 
     if L.is_f_contig():
+        # Solve L @ p = v
         dtrsv_uplo = b'L'
         dtrsv_trans = b'N'
     elif L.is_c_contig():
+        # Solve (L^T)^T @ p = v
+        # This is necessary because `dtrsv` expects column-major matrices and a
+        # row-major L buffer can be interpreted as a column-major L^T buffer
         dtrsv_uplo = b'U'
         dtrsv_trans = b'T'
 
-    cdef char dtrsv_diag = b'N'
+    cdef char dtrsv_diag = b'N'  # In general, L does not have a unit diagonal
 
     scipy.linalg.cython_blas.dtrsv(
         &dtrsv_uplo,
         &dtrsv_trans,
         &dtrsv_diag,
         &N,
-        L_ptr,
+        &L[0, 0],
         &N,
-        v_ptr,
-        &v_stride,
+        &v[0],
+        &stride_1,
     )
 
-    # The memory buffer for v now contains p
-    cdef double* p_ptr = v_ptr
-    cdef int p_stride = v_stride
+    cdef double[:] p = v  # `v` now contains p
 
-    # Compute rho = √(1 - p^T p)
-    cdef double p_norm_sq = scipy.linalg.cython_blas.ddot(
+    # Compute ρ = √(1 - p^T @ p)
+    cdef double p_dot_p = scipy.linalg.cython_blas.ddot(
         &N,
-        p_ptr,
-        &p_stride,
-        p_ptr,
-        &p_stride
+        &p[0],
+        &stride_1,
+        &p[0],
+        &stride_1,
     )
 
-    cdef double rho_sq = 1.0 - p_norm_sq
+    cdef double rho_sq = 1.0 - p_dot_p
 
     if rho_sq <= 0.0:
+        # The downdated matrix is positive definite if and only if rho ** 2 is positive
         raise np.linalg.LinAlgError("The downdated matrix is not positive definite.")
 
     cdef double rho = libc.math.sqrt(rho_sq)
 
-    # Stack p and rho into q = (p, rho)^T
-    cdef double* q_ptr = p_ptr
-    cdef int q_stride = p_stride
+    # "Append" `rho` to `p` to form `q`
+    cdef double[:] q_1n = p  # contains `q[:-1]`
+    cdef double q_np1 = rho  # contains `q[-1]`
 
-    cdef double q_np1 = rho
+    # "Append" a column of zeros to `L` to form the augmented matrix `L_aug`
+    cdef double[:, :] L_aug_cols_1n = L  # contains `L_aug[:, :-1]`
+    cdef int L_aug_cols_1n_row_stride = L_row_stride
 
-    # Temporary storage
-    cdef double[::1] temp = np.zeros(N, dtype=np.double)
-
-    cdef double* temp_ptr = &temp[0]
-    cdef int temp_stride = 1
-
-    # c and s will contain the cosine and sine terms that define the Givens rotations
-    # in the loop
-    cdef double c
-    cdef double s
-
-    cdef double m1 = -1.0
+    cdef double[::1] L_aug_col_np1 = \
+        np.zeros(N, dtype=np.double)  # contains `L_aug[:, -1]`
 
     # Initialize loop variables
     cdef int k = N - 1
+    cdef int N_minus_k = 1  # Needed for BLAS calls
 
-    q_ptr += k * q_stride
-    L_ptr += k * (L_row_stride + L_col_stride)
-    temp_ptr += k * temp_stride
-
-    cdef int drot_n = 1
+    cdef double c
+    cdef double s
 
     while k >= 0:
-        scipy.linalg.cython_blas.drotg(&q_np1, q_ptr, &c, &s)
+        # Generate Givens rotation which eliminates the k-th entry of `q` with the
+        # (n + 1)-th entry of `q` and directly apply it to q.
+        scipy.linalg.cython_blas.drotg(&q_np1, &q_1n[k], &c, &s)
 
+        # Givens rotations generated by BLAS' `drotg` might rotate `q_np1` to a
+        # negative value. However, for the algorithm to work, it is important that
+        # `q_np1` remains positive. As a remedy, we add another 180 degree rotation
+        # to the Givens rotation matrix. This flips the sign of `q_np1` while
+        # ensuring that the resulting transformation is still a Givens rotation.
         if q_np1 < 0.0:
             q_np1 = -q_np1
             c = -c
             s = -s
 
+        # Apply the transpose of the (modified) Givens rotation matrix to the
+        # augmented matrix `L_aug` from the right, i.e. compute L_aug @ Q_{c, s}^T
         scipy.linalg.cython_blas.drot(
-            &drot_n,
-            temp_ptr,
-            &temp_stride,
-            L_ptr,
-            &L_row_stride,
+            &N_minus_k,
+            # The next two lines define the slice `L_aug[k:, -1]`
+            &L_aug_col_np1[k],
+            &stride_1,
+            # The next two lines define the slice `L_aug[k:, k]`
+            &L_aug_cols_1n[k, k],
+            &L_aug_cols_1n_row_stride,
             &c,
             &s,
         )
 
-        if L_ptr[0] < 0.0:
+        # Applying the Givens rotation might lead to a negative diagonal element in
+        # `L_aug`. However, by convention, the diagonal entries of a Cholesky factor
+        # are positive. As a remedy, we simply flip the sign of the whole row. Note that
+        # this is possible, since rescaling a row by -1.0 is equivalent to a mirroring
+        # along one dimension which is in turn an orthogonal transformation.
+        if L_aug_cols_1n[k, k] < 0.0:
             scipy.linalg.cython_blas.dscal(
-                &drot_n,
-                &m1,
-                L_ptr,
-                &L_row_stride,
+                &N_minus_k,
+                &neg_1,
+                # The next two lines define the slice `L_aug[k:, k]`
+                &L_aug_cols_1n[k, k],
+                &L_aug_cols_1n_row_stride,
             )
 
         # Advance loop variables
         k -= 1
-
-        q_ptr -= q_stride
-        L_ptr -= L_row_stride + L_col_stride
-        temp_ptr -= temp_stride
-
-        drot_n += 1
+        N_minus_k += 1

@@ -18,7 +18,7 @@ def update(L: np.ndarray, v: np.ndarray) -> None:
 
     Parameters
     ----------
-    L :
+    L : (N, N) numpy.ndarray, dtype=numpy.double
         The lower-triangular Cholesky factor of the matrix to be updated.
         Must have shape `(N, N)` and dtype `np.double`.
         Must not contain zeros on the diagonal.
@@ -26,7 +26,7 @@ def update(L: np.ndarray, v: np.ndarray) -> None:
         arbitrary values, since the algorithm neither reads from nor writes to this part
         of the matrix
         Will be overridden with the Cholesky factor of the matrix to be updated.
-    v :
+    v : (N,) numpy.ndarray, dtype=numpy.double
         The vector :math:`v` with shape :code:`(N, N)` and dtype :class:`numpy.double`
         defining the symmetric rank-1 update :math:`v v^T`.
         Will be reused as an internal memory buffer to store intermediate results, and
@@ -127,7 +127,7 @@ def downdate(L: np.ndarray, v: np.ndarray) -> None:
 
     Parameters
     ----------
-    L :
+    L : (N, N) numpy.ndarray, dtype=numpy.double
         The lower-triangular Cholesky factor of the matrix to be downdated.
         Must have shape `(N, N)` and dtype `np.double`.
         Must not contain zeros on the diagonal.
@@ -135,7 +135,7 @@ def downdate(L: np.ndarray, v: np.ndarray) -> None:
         arbitrary values, since the algorithm neither reads from nor writes to this part
         of the matrix
         Will be overridden with the Cholesky factor of the matrix to be downdated.
-    v :
+    v : (N,) numpy.ndarray, dtype=numpy.double
         The vector :math:`v` with shape :code:`(N, N)` and dtype :class:`numpy.double`
         defining the symmetric rank-1 downdate :math:`v v^T`.
         Will be reused as an internal memory buffer to store intermediate results, and
@@ -143,6 +143,8 @@ def downdate(L: np.ndarray, v: np.ndarray) -> None:
 
     Raises
     ------
+    ValueError
+        If the memory layout of `L` is neither Fortan- nor C-contiguous.
     numpy.linalg.LinAlgError
         If the downdate results in a matrix that is not positive definite.
 
@@ -155,117 +157,148 @@ def downdate(L: np.ndarray, v: np.ndarray) -> None:
     ----------
     .. [1] M. Seeger, "Low Rank Updates for the Cholesky Decomposition", 2008.
     """
+
+    # pylint: disable=too-many-locals
+
     N = L.shape[0]
 
-    # Compute p
+    # Compute p by solving L @ p = v
     if L.flags.f_contiguous:
+        # Solve L @ p = v
         scipy.linalg.blas.dtrsv(
             a=L,
             x=v,
+            overwrite_x=True,
             lower=1,
             trans=0,
             diag=0,
-            overwrite_x=True,
         )
     elif L.flags.c_contiguous:
+        # Solve (L^T)^T @ p = v
+        # This is necessary because `dtrsv` expects column-major matrices and a
+        # row-major L buffer can be interpreted as a column-major L^T buffer
         scipy.linalg.blas.dtrsv(
-            a=L.T,
+            a=L.T,  # L.T is column-major
             x=v,
+            overwrite_x=True,
             lower=0,
             trans=1,
             diag=0,
-            overwrite_x=True,
+        )
+    else:
+        raise ValueError(
+            "Unsupported memory layout. L should either be Fortran- or C-contiguous"
         )
 
-    p = v
+    p = v  # `v` now contains p
 
-    # Compute rho
+    # Compute ρ = √(1 - p^T @ p)
     rho_sq = 1 - scipy.linalg.blas.ddot(p, p)
 
     if rho_sq <= 0.0:
-        # The updated matrix is positive definite if and only if rho ** 2 is positive
+        # The downdated matrix is positive definite if and only if rho ** 2 is positive
         raise np.linalg.LinAlgError("The downdated matrix is not positive definite.")
 
     rho = np.sqrt(rho_sq)
 
-    # "Create" q
-    q_0 = rho
-    q_1_to_n = p
+    # "Append" `rho` to `p` to form `q`
+    q_1n = p  # contains q[:-1]
+    q_np1 = rho  # contains q[-1]
 
-    # Create temporary vector accumulating Givens rotations of the appended zero vector
-    # in the augmented matrix from the left hand side of [1, equation 2]
-    temp = np.zeros(N, dtype=np.double)
+    # "Append" a column of zeros to `L` to form the augmented matrix `L_aug`
+    L_aug_cols_1n = L  # contains L_aug[:, :-1]
+    L_aug_col_np1 = np.zeros(N, dtype=L.dtype)  # contains L_aug[:, -1]
 
-    if L.flags.f_contiguous:
+    # We implement different versions of the algorithm for row- and column-major
+    # Cholesky factors, since we found this to be faster in Python
+    if L_aug_cols_1n.flags.f_contiguous:
         for k in range(N - 1, -1, -1):
-            # Generate Givens rotation
-            c, s = scipy.linalg.blas.drotg(
-                q_0,
-                q_1_to_n[k],
-            )
+            # Generate Givens rotation which eliminates the k-th entry of `q` with the
+            # (n + 1)-th entry of `q` and apply it to q.
+            # Note: The following two operations will be performed by a single call to
+            # `drotg` in C/Fortran. However, Python can not modify `Float` arguments.
+            c, s = scipy.linalg.blas.drotg(q_np1, q_1n[k])
+            q_np1, q_1n[k] = scipy.linalg.blas.drot(q_np1, q_1n[k], c, s)
 
-            # Apply Givens rotation to q
-            q_0, q_1_to_n[k] = scipy.linalg.blas.drot(q_0, q_1_to_n[k], c, s)
-
-            # Givens rotations generated by BLAS' `drotg` might rotate q_0 to a negative
-            # value. However, for the algorithm to work, it is important that q_0
-            # remains positive. As a remedy, we add another 180 degree rotation to the
-            # Givens rotation matrix. This flips the sign of q_0 while ensuring that the
-            # resulting transformation is still a Givens rotation.
-            if q_0 < 0.0:
-                q_0 = -q_0
+            # Givens rotations generated by BLAS' `drotg` might rotate `q_np1` to a
+            # negative value. However, for the algorithm to work, it is important that
+            # `q_np1` remains positive. As a remedy, we add another 180 degree rotation
+            # to the Givens rotation matrix. This flips the sign of `q_np1` while
+            # ensuring that the resulting transformation is still a Givens rotation.
+            if q_np1 < 0.0:
+                q_np1 = -q_np1
                 c = -c
                 s = -s
 
+            # Apply the transpose of the (modified) Givens rotation matrix to the
+            # augmented matrix `L_aug` from the right, i.e. compute L_aug @ Q_{c, s}^T
             scipy.linalg.blas.drot(
-                temp[k:], L[k:, k], c, s, overwrite_x=True, overwrite_y=True
-            )
-
-            # Applying the Givens rotation might lead to a negative diagonal element in
-            # L_T. However, by convention, the diagonal entries of a Cholesky factor are
-            # positive. As a remedy, we simply rescale the whole row. Note that this is
-            # possible, since rescaling a row is equivalent to a mirroring along one
-            # dimension which is in turn an orthogonal transformation.
-            if L[k, k] < 0.0:
-                L[k:, k] = -L[k:, k]
-    elif L.flags.c_contiguous:
-        L_buf = L.ravel(order="K")
-
-        for k in range(N - 1, -1, -1):
-            # Generate Givens rotation
-            c, s = scipy.linalg.blas.drotg(
-                q_0,
-                q_1_to_n[k],
-            )
-
-            # Apply Givens rotation to q
-            q_0, q_1_to_n[k] = scipy.linalg.blas.drot(q_0, q_1_to_n[k], c, s)
-
-            # Givens rotations generated by BLAS' `drotg` might rotate q_0 to a negative
-            # value. However, for the algorithm to work, it is important that q_0
-            # remains positive. As a remedy, we add another 180 degree rotation to the
-            # Givens rotation matrix. This flips the sign of q_0 while ensuring that the
-            # resulting transformation is still a Givens rotation.
-            if q_0 < 0.0:
-                q_0 = -q_0
-                c = -c
-                s = -s
-
-            scipy.linalg.blas.drot(
-                x=temp[k:],
-                y=L_buf,
-                offy=k * (N + 1),
-                incy=N,
+                x=L_aug_col_np1[k:],
+                overwrite_x=True,
+                y=L_aug_cols_1n[k:, k],
+                overwrite_y=True,
                 c=c,
                 s=s,
-                overwrite_x=True,
-                overwrite_y=True,
             )
 
             # Applying the Givens rotation might lead to a negative diagonal element in
-            # L_T. However, by convention, the diagonal entries of a Cholesky factor are
-            # positive. As a remedy, we simply rescale the whole row. Note that this is
-            # possible, since rescaling a row is equivalent to a mirroring along one
+            # `L_aug`. However, by convention, the diagonal entries of a Cholesky factor
+            # are positive. As a remedy, we simply rescale the whole row. Note that this
+            # is possible, since rescaling a row is equivalent to a mirroring along one
             # dimension which is in turn an orthogonal transformation.
-            if L[k, k] < 0.0:
-                L[k:, k] = -L[k:, k]
+            if L_aug_cols_1n[k, k] < 0.0:
+                L_aug_cols_1n[k:, k] = -L_aug_cols_1n[k:, k]
+    elif L_aug_cols_1n.flags.c_contiguous:
+        # Generate a contiguous view of the underling memory buffer of L, emulating raw
+        # pointer access
+        L_aug_cols_1n_buf = L_aug_cols_1n.ravel(order="K")
+
+        assert np.may_share_memory(L, L_aug_cols_1n_buf)
+
+        # In row-major memory layout, moving to the next column means moving the pointer
+        # by 1 entry, while moving to the next row means moving the pointer by N
+        # entries, i.e. the number of entries per row
+        row_stride = N
+        col_stride = 1
+
+        for k in range(N - 1, -1, -1):
+            # Generate Givens rotation which eliminates the k-th entry of `q` with the
+            # (n + 1)-th entry of `q` and apply it to q.
+            # Note: The following two operations will be performed by a single call to
+            # `drotg` in C/Fortran. However, Python can not modify `Float` arguments.
+            c, s = scipy.linalg.blas.drotg(q_np1, q_1n[k])
+            q_np1, q_1n[k] = scipy.linalg.blas.drot(q_np1, q_1n[k], c, s)
+
+            # Givens rotations generated by BLAS' `drotg` might rotate `q_np1` to a
+            # negative value. However, for the algorithm to work, it is important that
+            # `q_np1` remains positive. As a remedy, we add another 180 degree rotation
+            # to the Givens rotation matrix. This flips the sign of `q_np1` while
+            # ensuring that the resulting transformation is still a Givens rotation.
+            if q_np1 < 0.0:
+                q_np1 = -q_np1
+                c = -c
+                s = -s
+
+            # Apply the transpose of the (modified) Givens rotation matrix to the
+            # augmented matrix `L_aug` from the right, i.e. compute L_aug @ Q_{c, s}^T
+            scipy.linalg.blas.drot(
+                x=L_aug_col_np1[k:],
+                overwrite_x=True,
+                # The following 3 lines describe the memory adresses of the slice
+                # `L_aug_cols_1n[k:, k]`
+                y=L_aug_cols_1n_buf,
+                offy=k * (row_stride + col_stride),
+                incy=row_stride,
+                overwrite_y=True,
+                c=c,
+                s=s,
+            )
+
+            # Applying the Givens rotation might lead to a negative diagonal element in
+            # `L_aug`. However, by convention, the diagonal entries of a Cholesky factor
+            # are positive. As a remedy, we simply flip the sign of the whole row. Note
+            # that this is possible, since rescaling a row by -1.0 is equivalent to a
+            # mirroring along one dimension which is in turn an orthogonal
+            # transformation.
+            if L_aug_cols_1n[k, k] < 0.0:
+                L_aug_cols_1n[k:, k] = -L_aug_cols_1n[k:, k]

@@ -34,7 +34,7 @@ try:
 
     _downdate_available_impls.append("cython")
     _downdate_impl_default = _downdate_impl_cython
-except ImportError:
+except ImportError:  # pragma: no cover
     pass
 
 
@@ -261,7 +261,7 @@ def update_seeger(
     elif impl == "cython":
         try:
             _update_impl_cython(L, v)
-        except NameError as ne:
+        except NameError as ne:  # pragma: no cover
             raise ValueError("The Cython implementation is not available.") from ne
     elif impl == "python":
         _update_impl_python(L, v)
@@ -670,7 +670,7 @@ def downdate_seeger(
     elif impl == "cython":
         try:
             _downdate_impl_cython(L, v)
-        except NameError as ne:
+        except NameError as ne:  # pragma: no cover
             raise ValueError("The Cython implementation is not available.") from ne
     elif impl == "python":
         _downdate_impl_python(L, v)

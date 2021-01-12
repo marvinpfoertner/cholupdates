@@ -47,7 +47,7 @@ def update_seeger(
     impl: Optional[str] = None,
 ) -> np.ndarray:
     r"""Update a Cholesky factorization after addition of a positive semidefinite
-    symmetric rank-1 matrix using the algorithm from section 2 of [1]_.
+    symmetric rank-1 matrix using the algorithm from section 2 of [Seeger, 2008].
 
     In other words, given :math:`A = L L^T \in \mathbb{R}^{N \times N}` and
     :math:`v \in \mathbb{R}^N`, compute :math:`L'` such that
@@ -286,7 +286,7 @@ def downdate_seeger(
     impl: Optional[str] = None,
 ) -> np.ndarray:
     r"""Update a Cholesky factorization after subtraction of a positive semidefinite
-    symmetric rank-1 matrix using the algorithm from section 3 of [1]_.
+    symmetric rank-1 matrix using the algorithm from section 3 of [Seeger, 2008].
 
     In other words, given :math:`A = L L^T \in \mathbb{R}^{N \times N}`, and
     :math:`v \in \mathbb{R}^N`, compute :math:`L'` such that

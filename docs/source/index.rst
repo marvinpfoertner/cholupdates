@@ -7,14 +7,10 @@ Welcome to cholupdates's documentation!
 =======================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: API Documentation
 
-Rank-1 Modifications
-====================
-
-.. automodule:: cholupdates.rank_1
-   :members:
+   api/cholupdates.rank_1
 
 Indices and tables
 ==================

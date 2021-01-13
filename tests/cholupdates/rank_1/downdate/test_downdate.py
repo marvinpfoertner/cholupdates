@@ -158,3 +158,24 @@ def test_raise_on_indefinite_result(
 
     with pytest.raises(np.linalg.LinAlgError):
         cholupdates.rank_1.downdate(L, v, **method_kwargs)
+
+
+def test_ill_conditioned_matrix(
+    A: np.ndarray,
+    A_eigh: Tuple[np.ndarray, np.ndarray],
+    L: np.ndarray,
+    method_kwargs: Dict[str, Any],
+):
+    """Tests whether the algorithm still works if the downdate blows up the condition
+    number of the updated matrix."""
+    spectrum, Q = A_eigh
+
+    # Generate adverse update vector, which increases the condition number by 100000
+    v = Q[:, 0]  # Select eigenvector corresponding to smallest eigenvalue
+    v *= np.sqrt(spectrum[0] * (1.0 - 1e-6))
+
+    # Compute update
+    L_upd = cholupdates.rank_1.downdate(L, v, **method_kwargs)
+
+    # Check quality
+    assert L_upd @ L_upd.T == pytest.approx(A - np.outer(v, v))

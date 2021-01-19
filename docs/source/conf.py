@@ -33,6 +33,7 @@ author = "Marvin Pförtner"
 extensions = [
     "sphinx_rtd_theme",
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
 ]
@@ -48,7 +49,11 @@ exclude_patterns = []
 
 # -- Autodoc configuration -----------------------------------------------
 
+autodoc_member_order = "bysource"
 autodoc_typehints = "description"
+
+autosummary_generate = True
+autosummary_generate_overwrite = True
 
 # -- Intersphinx configuration -----------------------------------------------
 

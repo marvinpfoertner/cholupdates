@@ -22,10 +22,16 @@ def A_prime(A: np.ndarray, v: np.ndarray) -> np.ndarray:
     return A + np.outer(v, v)
 
 
+@pytest.fixture(params=["cho_factor", "seeger_python", "seeger_cython"])
+def method(request) -> str:
+    """The update algorithm to be tested."""
+    return request.param
+
+
 @pytest.fixture
 def L_prime(L: np.ndarray, v: np.ndarray, method: str) -> np.ndarray:
     """Lower cholesky factor of :func:`A_prime` computed via
-    :func:`cholupdates.rank_1_updates`"""
+    :func:`cholupdates.rank_1.update`"""
     return cholupdates.rank_1.update(
         L=L.copy(order="K"),
         v=v.copy(),

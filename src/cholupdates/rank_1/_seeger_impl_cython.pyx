@@ -66,7 +66,7 @@ cpdef void update(
         L_col_stride = 1
     else:
         raise ValueError(
-            "Unsupported memory layout. L should either be Fortran- or C-contiguous"
+            "Unsupported memory layout. L should either be Fortran- or C-contiguous."
         )
 
     cdef int v_stride = 1

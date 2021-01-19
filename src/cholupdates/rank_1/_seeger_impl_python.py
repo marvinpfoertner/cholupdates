@@ -187,7 +187,7 @@ def downdate(L: np.ndarray, v: np.ndarray) -> None:
         )
     else:
         raise ValueError(
-            "Unsupported memory layout. L should either be Fortran- or C-contiguous"
+            "Unsupported memory layout. L should either be Fortran- or C-contiguous."
         )
 
     p = v  # `v` now contains p

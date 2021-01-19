@@ -1,5 +1,7 @@
 """Interface function for all symmetric rank-1 downdate algorithms"""
 
+from typing import Any, Dict
+
 import numpy as np
 import scipy.linalg
 
@@ -14,7 +16,7 @@ def downdate(
     overwrite_L: bool = False,
     overwrite_v: bool = False,
     method: str = "seeger",
-    **kwargs,
+    **method_kwargs: Dict[str, Any],
 ) -> np.ndarray:
     r"""Update a Cholesky factorization after subtraction of a symmetric positive
     semidefinite rank-1 matrix.
@@ -66,6 +68,9 @@ def downdate(
             Calls :func:`cholupdates.rank_1.update_seeger`.
 
         Defaults to "seeger".
+    method_kwargs :
+        Additional keyword arguments which will be passed to the function selected by
+        :code:`method`.
 
     Returns
     -------
@@ -79,12 +84,12 @@ def downdate(
     ------
     ValueError
         If :code:`L` does not have shape :code:`(N, N)` for some :code:`N`.
-    numpy.linalg.LinAlgError
-        If the diagonal of :code:`L` contains zeros and :code:`check_diag` is set to
-        :code:`True`.
     ValueError
         If :code:`v` does not have shape :code:`(N,)`, while :code:`L` has shape
         :code:`(N, N)`.
+    numpy.linalg.LinAlgError
+        If the diagonal of :code:`L` contains zeros and :code:`check_diag` is set to
+        :code:`True`.
     numpy.linalg.LinAlgError
         If the downdate results in a matrix :math:`L'`, which is not positive definite.
     Exception
@@ -162,7 +167,7 @@ def downdate(
             check_diag=check_diag,
             overwrite_L=overwrite_L,
             overwrite_v=overwrite_v,
-            **kwargs,
+            **method_kwargs,
         )
     else:
         raise ValueError(f"Unknown method: '{method}'")

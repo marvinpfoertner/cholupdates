@@ -1,0 +1,28 @@
+name: Publish Linux Python + Cython Packages
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0  # This is needed so that all tags are loaded (these are used in setuptools_scm)
+    - name: Build Linux Wheels
+      # You may pin to the exact commit or the version.
+      # uses: RalfG/python-wheels-manylinux-build@34161e0af9394fc7b5140da1ae8fc861540bba8d
+      uses: RalfG/python-wheels-manylinux-build@v0.3.3
+      with:
+        python-versions: cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        python -m pip install --upgrade pip
+        pip install --upgrade twine
+        twine upload dist/*-manylinux*.whl

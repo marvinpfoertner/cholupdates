@@ -9,6 +9,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
+local_scheme = "dirty-tag"
 write_to = "src/cholupdates/_version.py"
 
 [tool.pytest.ini_options]

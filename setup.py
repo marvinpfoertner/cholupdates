@@ -32,5 +32,4 @@ else:
 
 setup(
     ext_modules=ext_modules,
-    use_scm_version=True,  # This is only here for compatibility reasons
 )

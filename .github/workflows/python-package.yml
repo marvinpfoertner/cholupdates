@@ -11,11 +11,16 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.platform }}
     strategy:
       matrix:
         platform: ['ubuntu-latest']
         python-version: ['3.6', '3.7', '3.8', '3.9']
+        disable-cython-build: ['0', '1']
+
+    runs-on: ${{ matrix.platform }}
+
+    env:
+        CHOLUPDATES_DISABLE_CYTHON_BUILD: ${{ matrix.disable-cython-build }}
 
     steps:
     - uses: actions/checkout@v2

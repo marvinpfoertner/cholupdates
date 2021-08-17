@@ -22,7 +22,7 @@ def A_prime(A: np.ndarray, v: np.ndarray) -> np.ndarray:
     return A + np.outer(v, v)
 
 
-@pytest.fixture(params=["cho_factor", "seeger_python", "seeger_cython"])
+@pytest.fixture(params=cholupdates.rank_1.update.available_methods)
 def method(request) -> str:
     """The update algorithm to be tested."""
     return request.param

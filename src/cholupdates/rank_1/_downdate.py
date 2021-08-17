@@ -173,3 +173,6 @@ def downdate(
         raise ValueError(f"Unknown method: '{method}'")
 
     return L_upd
+
+
+downdate.available_methods = ["cho_factor", "seeger"]

@@ -196,3 +196,8 @@ def update(
         raise ValueError(f"Unknown method: '{method}'")
 
     return L_upd
+
+
+update.available_methods = ["cho_factor", "seeger"] + [
+    f"seeger_{impl}" for impl in update_seeger.available_impls
+]

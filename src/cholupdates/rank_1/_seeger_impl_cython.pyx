@@ -1,3 +1,5 @@
+# cython: language_level = 3
+
 """Cython implementation of the symmetric rank-1 up- and downdate algorithms from
 sections 2 and 3 in [1]_.
 

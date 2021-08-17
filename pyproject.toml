@@ -2,10 +2,14 @@
 requires = [
     "setuptools>=46.4.0",
     "wheel",
+    "setuptools_scm[toml]>=6.0",
     "Cython",
     "scipy",
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "src/cholupdates/_version.py"
 
 [tool.pytest.ini_options]
 addopts = [

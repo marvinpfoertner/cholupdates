@@ -8,6 +8,9 @@ jobs:
   deploy:
     runs-on: 'ubuntu-latest'
 
+    env:
+      CHOLUPDATES_DISABLE_CYTHON_BUILD: 1
+
     steps:
     - uses: actions/checkout@v2
       with:
@@ -16,18 +19,28 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.x'
-    - name: Install dependencies
+    - name: Upgrade pip
       run: |
         python -m pip install --upgrade pip
-        pip install --upgrade build twine
-    - name: Build package using `build`
-      env:
-        CHOLUPDATES_DISABLE_CYTHON_BUILD: 1
+    - name: Build and install package
       run: |
+        python -m pip install -e .[testing,linting]
+    - name: Linting
+      run: |
+        pylint src/cholupdates
+      if: always()
+    - name: Run tests
+      run: |
+        pytest
+      if: always()
+    - name: Build package using `build`
+      run: |
+        pip install --upgrade build
         python -m build
     - name: Publish to PyPI
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run: |
+        pip install --upgrade twine
         twine upload dist/*-py3-none-any.whl

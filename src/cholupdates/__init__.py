@@ -3,5 +3,6 @@ factorization of low-rank up-/downdates to a matrix with a known Cholesky factor
 """
 
 from . import rank_1
+from ._version import version as _version_str
 
-__version__ = "0.0.1a2"
+__version__ = _version_str

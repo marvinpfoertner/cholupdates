@@ -1,9 +1,13 @@
 from setuptools import setup
 
 try:
+    # isort: off
+
     # This import must come after the setuptools import
-    from Cython.Build import cythonize  # isort: skip
-    import scipy  # isort: skip, pylint: disable=unused-import
+    from Cython.Build import cythonize
+    import scipy  # pylint: disable=unused-import
+
+    # isort: on
 
     build_cython = True
 except ImportError:

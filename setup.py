@@ -1,5 +1,8 @@
 from setuptools import setup
 
+# Cython Extensions
+ext_modules = []
+
 try:
     # isort: off
 
@@ -7,21 +10,25 @@ try:
     from Cython.Build import cythonize
     import scipy  # pylint: disable=unused-import
 
+    import os
+
     # isort: on
 
-    build_cython = True
+    cython_available = True
 except ImportError:
-    build_cython = False
+    cython_available = False
 
-    print("Not building Cython extensions")
-
-# Extensions
-ext_modules = []
+build_cython = cython_available and not (
+    "CHOLUPDATES_DISABLE_CYTHON_BUILD" in os.environ
+    and os.environ["CHOLUPDATES_DISABLE_CYTHON_BUILD"] == "1"
+)
 
 if build_cython:
     ext_modules.extend(
         cythonize("src/cholupdates/rank_1/_seeger_impl_cython.pyx"),
     )
+else:
+    print("Not building Cython extensions")
 
 setup(
     ext_modules=ext_modules,

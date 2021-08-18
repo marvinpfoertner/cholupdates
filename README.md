@@ -1,5 +1,4 @@
-# cholupdates
-### Efficient Updates to Cholesky Factors after Matrix Modifications
+# cholupdates: Efficient Updates to Cholesky Factors after Matrix Modifications
 
 [![Linting and Testing](https://img.shields.io/github/workflow/status/marvinpfoertner/cholupdates/Linting%20and%20Testing?logo=github&logoColor=white&label=Linting%20and%20Testing)](https://github.com/marvinpfoertner/cholupdates/actions?query=workflow%3ALinting%20and%20Testing)
 [![Coverage Status](https://img.shields.io/codecov/c/gh/marvinpfoertner/cholupdates/master?label=Coverage&logo=codecov&logoColor=white)](https://codecov.io/gh/marvinpfoertner/cholupdates/branch/master)

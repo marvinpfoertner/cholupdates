@@ -163,6 +163,7 @@ def update(
             L_tril @ L_tril.T + np.outer(v, v),
             lower=True,
             overwrite_a=True,
+            **method_kwargs,
         )
 
         L_upd[np.triu_indices(L.shape[0], k=1)] = L[np.triu_indices(L.shape[0], k=1)]

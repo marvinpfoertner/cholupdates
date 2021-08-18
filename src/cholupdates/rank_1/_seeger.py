@@ -15,8 +15,6 @@ from ._seeger_impl_python import downdate as _downdate_impl_python
 from ._seeger_impl_python import update as _update_impl_python
 
 # Check if Cython implementations are available
-_cython_available = False
-
 _update_available_impls = ["python"]
 _update_impl_default = _update_impl_python
 
@@ -26,8 +24,6 @@ _downdate_impl_default = _downdate_impl_python
 try:
     from ._seeger_impl_cython import downdate as _downdate_impl_cython
     from ._seeger_impl_cython import update as _update_impl_cython
-
-    _cython_available = True
 
     _update_available_impls.append("cython")
     _update_impl_default = _update_impl_cython

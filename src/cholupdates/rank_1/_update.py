@@ -20,10 +20,10 @@ def update(
     symmetric rank-1 matrix.
 
     In other words, given :math:`A = L L^T \in \mathbb{R}^{N \times N}` and
-    :math:`v \in \mathbb{R}^N`, compute :math:`L'` such that
+    :math:`v \in \mathbb{R}^N`, compute :math:`L^+` such that
 
     .. math::
-        A' := A + v v^T = L' L'^T.
+        A^+ := A + v v^T = L^+ (L^+)^T.
 
     Parameters
     ----------
@@ -48,7 +48,7 @@ def update(
         contain zeros on its diagonal, the behavior of the function will be undefined.
     overwrite_L :
         If set to :code:`True`, the function may overwrite the array :code:`L` with the
-        upper Cholesky factor :math:`L'` of :math:`A'`, i.e. the result is computed
+        upper Cholesky factor :math:`L^+` of :math:`A^+`, i.e. the result is computed
         in-place.
         Passing :code:`False` here ensures that the array :code:`L` is not modified.
     overwrite_v :
@@ -73,7 +73,7 @@ def update(
     Returns
     -------
     (N, N) numpy.ndarray, dtype=L.dtype
-        Lower triangular Cholesky factor :math:`L'` of :math:`A + v v^T`.
+        Lower triangular Cholesky factor :math:`L^+` of :math:`A + v v^T`.
         The diagonal entries of this matrix are guaranteed to be positive.
         The strict upper-triangular part of this matrix will contain the values from the
         upper-triangular part of :code:`L`.

@@ -9,12 +9,7 @@ symmetric positive semi-definite rank-1 matrix :math:`v v^T \in \mathbb{R}^{n \t
 which we can apply to :math:`A` to obtain
 
 .. math::
-    A^+ := A + v v^T,
-
-and
-
-.. math::
-    A^- := A - v v^T.
+    A^\pm := A \pm v v^T.
 
 If :math:`v v^T` is added to :math:`A`, we refer to the operation and :math:`v v^T`
 itself as a rank-1 update to :math:`A`, and to :math:`A^+` as the updated matrix.

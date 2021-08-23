@@ -2,6 +2,8 @@
 
 # pylint: disable=redefined-outer-name
 
+from typing import Any, Dict
+
 import numpy as np
 import pytest
 
@@ -22,14 +24,25 @@ def A_prime(A: np.ndarray, v: np.ndarray) -> np.ndarray:
     return A + np.outer(v, v)
 
 
-@pytest.fixture(params=cholupdates.rank_1.update.available_methods)
-def method(request) -> str:
+@pytest.fixture(
+    params=(
+        [
+            pytest.param({"method": method}, id=method)
+            for method in cholupdates.rank_1.update.available_methods
+        ]
+        + [
+            pytest.param({"method": "seeger", "impl": impl}, id=f"seeger_{impl}")
+            for impl in cholupdates.rank_1.update_seeger.available_impls
+        ]
+    )
+)
+def method_kwargs(request) -> Dict[str, Any]:
     """The update algorithm to be tested."""
     return request.param
 
 
 @pytest.fixture
-def L_prime(L: np.ndarray, v: np.ndarray, method: str) -> np.ndarray:
+def L_prime(L: np.ndarray, v: np.ndarray, method_kwargs: Dict[str, Any]) -> np.ndarray:
     """Lower cholesky factor of :func:`A_prime` computed via
     :func:`cholupdates.rank_1.update`"""
     return cholupdates.rank_1.update(
@@ -37,5 +50,5 @@ def L_prime(L: np.ndarray, v: np.ndarray, method: str) -> np.ndarray:
         v=v.copy(),
         overwrite_L=True,
         overwrite_v=True,
-        method=method,
+        **method_kwargs,
     )

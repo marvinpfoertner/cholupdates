@@ -14,15 +14,16 @@ def update(
     overwrite_L: bool = False,
     overwrite_v: bool = False,
     method: str = "seeger",
+    **method_kwargs,
 ) -> np.ndarray:
     r"""Update a Cholesky factorization after addition of a positive-semidefinite
     symmetric rank-1 matrix.
 
     In other words, given :math:`A = L L^T \in \mathbb{R}^{N \times N}` and
-    :math:`v \in \mathbb{R}^N`, compute :math:`L'` such that
+    :math:`v \in \mathbb{R}^N`, compute :math:`L^+` such that
 
     .. math::
-        A' := A + v v^T = L' L'^T.
+        A^+ := A + v v^T = L^+ (L^+)^T.
 
     Parameters
     ----------
@@ -47,7 +48,7 @@ def update(
         contain zeros on its diagonal, the behavior of the function will be undefined.
     overwrite_L :
         If set to :code:`True`, the function may overwrite the array :code:`L` with the
-        upper Cholesky factor :math:`L'` of :math:`A'`, i.e. the result is computed
+        upper Cholesky factor :math:`L^+` of :math:`A^+`, i.e. the result is computed
         in-place.
         Passing :code:`False` here ensures that the array :code:`L` is not modified.
     overwrite_v :
@@ -63,17 +64,16 @@ def update(
             methods.
         - "seeger"
             Calls :func:`cholupdates.rank_1.update_seeger`.
-        - "seeger_cython"
-            Calls :func:`cholupdates.rank_1.update_seeger` with :code:`impl="cython"`.
-        - "seeger_python"
-            Calls :func:`cholupdates.rank_1.update_seeger` with :code:`impl="python"`.
 
         Defaults to "seeger".
+    method_kwargs :
+        Additional keyword arguments which will be passed to the function selected by
+        :code:`method`.
 
     Returns
     -------
     (N, N) numpy.ndarray, dtype=L.dtype
-        Lower triangular Cholesky factor :math:`L'` of :math:`A + v v^T`.
+        Lower triangular Cholesky factor :math:`L^+` of :math:`A + v v^T`.
         The diagonal entries of this matrix are guaranteed to be positive.
         The strict upper-triangular part of this matrix will contain the values from the
         upper-triangular part of :code:`L`.
@@ -163,6 +163,7 @@ def update(
             L_tril @ L_tril.T + np.outer(v, v),
             lower=True,
             overwrite_a=True,
+            **method_kwargs,
         )
 
         L_upd[np.triu_indices(L.shape[0], k=1)] = L[np.triu_indices(L.shape[0], k=1)]
@@ -173,24 +174,7 @@ def update(
             check_diag=check_diag,
             overwrite_L=overwrite_L,
             overwrite_v=overwrite_v,
-        )
-    elif method == "seeger_cython":
-        L_upd = update_seeger(
-            L,
-            v,
-            check_diag=check_diag,
-            overwrite_L=overwrite_L,
-            overwrite_v=overwrite_v,
-            impl="cython",
-        )
-    elif method == "seeger_python":
-        L_upd = update_seeger(
-            L,
-            v,
-            check_diag=check_diag,
-            overwrite_L=overwrite_L,
-            overwrite_v=overwrite_v,
-            impl="python",
+            **method_kwargs,
         )
     else:
         raise ValueError(f"Unknown method: '{method}'")
@@ -198,6 +182,4 @@ def update(
     return L_upd
 
 
-update.available_methods = ["cho_factor", "seeger"] + [
-    f"seeger_{impl}" for impl in update_seeger.available_impls
-]
+update.available_methods = ["cho_factor", "seeger"]

@@ -15,8 +15,6 @@ from ._seeger_impl_python import downdate as _downdate_impl_python
 from ._seeger_impl_python import update as _update_impl_python
 
 # Check if Cython implementations are available
-_cython_available = False
-
 _update_available_impls = ["python"]
 _update_impl_default = _update_impl_python
 
@@ -26,8 +24,6 @@ _downdate_impl_default = _downdate_impl_python
 try:
     from ._seeger_impl_cython import downdate as _downdate_impl_cython
     from ._seeger_impl_cython import update as _update_impl_cython
-
-    _cython_available = True
 
     _update_available_impls.append("cython")
     _update_impl_default = _update_impl_cython
@@ -50,14 +46,14 @@ def update_seeger(
     symmetric rank-1 matrix using the algorithm from section 2 of [Seeger, 2008].
 
     In other words, given :math:`A = L L^T \in \mathbb{R}^{N \times N}` and
-    :math:`v \in \mathbb{R}^N`, compute :math:`L'` such that
+    :math:`v \in \mathbb{R}^N`, compute :math:`L^+` such that
 
     .. math::
-        A' := A + v v^T = L' L'^T.
+        A^+ := A + v v^T = L^+ (L^+)^T.
 
-    This function computes the Cholesky factorization of :math:`A'` from :math:`L` in
+    This function computes the Cholesky factorization of :math:`A^+` from :math:`L` in
     :math:`O(N^2)` time, which is faster than the :math:`O(N^3)` time complexity of
-    naively applying a Cholesky algorithm to :math:`A'` directly.
+    naively applying a Cholesky algorithm to :math:`A^+` directly.
 
     Parameters
     ----------
@@ -86,7 +82,7 @@ def update_seeger(
         contain zeros on its diagonal, the behavior of the function will be undefined.
     overwrite_L :
         If set to :code:`True`, the function will overwrite the array :code:`L` with the
-        upper Cholesky factor :math:`L'` of :math:`A'`, i.e. the result is computed
+        upper Cholesky factor :math:`L^+` of :math:`A^+`, i.e. the result is computed
         in-place.
         Passing :code:`False` here ensures that the array :code:`L` is not modified.
     overwrite_v :
@@ -112,7 +108,7 @@ def update_seeger(
     Returns
     -------
     (N, N) numpy.ndarray, dtype=numpy.double
-        Lower-triangular Cholesky factor :math:`L'` of :math:`A + v v^T` with shape
+        Lower-triangular Cholesky factor :math:`L^+` of :math:`A + v v^T` with shape
         :code:`(N, N)` and dtype :class:`numpy.double`.
         The diagonal entries of this matrix are guaranteed to be positive.
         The strict upper-triangular part of this matrix will contain the values from the
@@ -152,18 +148,18 @@ def update_seeger(
     i.e.
 
     .. math::
-        A' := A + v v^T.
+        A^+ := A + v v^T.
 
     Assume that the Cholesky factorization of :math:`A`, i.e. a lower-triangular matrix
     :math:`L \in \mathbb{R}^{n \times n}` with :math:`A = L L^T`, is given.
     We want to find a fast and stable method to update the Cholesky factorization
     :math:`L L^T` of :math:`A` to the Cholesky factorization of the updated matrix
-    :math:`A'`.
+    :math:`A^+`.
 
     To this end, we rewrite the update equation as
 
     .. math::
-        A'
+        A^+
         =
         \underbrace{L L^T}_{= A} + v v^T
         =
@@ -186,23 +182,23 @@ def update_seeger(
         Q
         =
         \begin{pmatrix}
-            L' & 0
+            L^+ & 0
         \end{pmatrix},
 
-    where :math:`L' \in \mathbb{R}^{n \times n}` is lower-triangular.
+    where :math:`L^+ \in \mathbb{R}^{n \times n}` is lower-triangular.
     In other words, :math:`Q` eliminates the last column, i.e. :math:`v`, from the
     augmented matrix :math:`(L \mid v)`, while preserving the lower-triangular structure
     of the left block.
     But now we have
 
     .. math::
-        L' L'^T
+        L^+ (L^+)^T
         & =
         \begin{pmatrix}
-            L' & 0
+            L^+ & 0
         \end{pmatrix}
         \begin{pmatrix}
-            L' & 0
+            L^+ & 0
         \end{pmatrix}^T \\
         & =
         \begin{pmatrix}
@@ -214,9 +210,9 @@ def update_seeger(
             v^T
         \end{pmatrix} \\
         & = \underbrace{L L^T}_{= A} + v v^T \\
-        & = A',
+        & = A^+,
 
-    so :math:`L'` is already the lower-triangular Cholesky factor of :math:`A'`.
+    so :math:`L^+` is already the lower-triangular Cholesky factor of :math:`A^+`.
 
     As mentioned above, we need to multiply :math:`n` Givens rotation matrices to
     :math:`(L \mid v)` which takes :math:`O(n)` arithmetic operations for each rotation
@@ -289,17 +285,17 @@ def downdate_seeger(
     symmetric rank-1 matrix using the algorithm from section 3 of [Seeger, 2008].
 
     In other words, given :math:`A = L L^T \in \mathbb{R}^{N \times N}`, and
-    :math:`v \in \mathbb{R}^N`, compute :math:`L'` such that
+    :math:`v \in \mathbb{R}^N`, compute :math:`L^-` such that
 
     .. math::
-        A' := A - v v^T = L' L'^T.
+        A^- := A - v v^T = L^- (L^-)^T.
 
     Note that the Cholesky factorization of the downdated matrix may not exist, since a
     downdate might result in a matrix which is not positive definite.
 
-    This function computes the Cholesky factorization of :math:`A'` from :math:`L` in
+    This function computes the Cholesky factorization of :math:`A^-` from :math:`L` in
     :math:`O(N^2)` time, which is faster than the :math:`O(N^3)` time complexity of
-    naively applying a Cholesky algorithm to :math:`A'` directly.
+    naively applying a Cholesky algorithm to :math:`A^-` directly.
 
     Parameters
     ----------
@@ -328,7 +324,7 @@ def downdate_seeger(
         contain zeros on its diagonal, the behavior of the function will be undefined.
     overwrite_L :
         If set to :code:`True`, the function will overwrite the array :code:`L` with the
-        upper Cholesky factor :math:`L'` of :math:`A'`, i.e. the result is computed
+        upper Cholesky factor :math:`L^-` of :math:`A^-`, i.e. the result is computed
         in-place.
         Passing :code:`False` here ensures that the array :code:`L` is not modified.
     overwrite_v :
@@ -354,7 +350,7 @@ def downdate_seeger(
     Returns
     -------
     (N, N) numpy.ndarray, dtype=numpy.double
-        Lower-triangular Cholesky factor :math:`L'` of :math:`A - v v^T` with shape
+        Lower-triangular Cholesky factor :math:`L^-` of :math:`A - v v^T` with shape
         :code:`(N, N)` and dtype :class:`numpy.double`.
         The diagonal entries of this matrix are guaranteed to be positive.
         The strict upper-triangular part of this matrix will contain the values from the
@@ -379,7 +375,7 @@ def downdate_seeger(
         If :code:`impl` was set to :code:`"cython"`, but the Cython implementation is
         not available.
     numpy.linalg.LinAlgError
-        If the downdate results in a matrix :math:`L'`, which is not positive definite.
+        If the downdate results in a matrix :math:`L^-`, which is not positive definite.
 
     See Also
     --------
@@ -396,19 +392,20 @@ def downdate_seeger(
     :math:`A`, i.e.
 
     .. math::
-        A' := A - v v^T.
+        A^- := A - v v^T.
 
-    Note that :math:`A'` need not be positive definite.
-    In the following, we will derive an efficient criterion to check whether :math:`A'`
+    Note that :math:`A^-` need not be positive definite.
+    In the following, we will derive an efficient criterion to check whether :math:`A^-`
     is positive definite.
-    For the derivation of the algorithm, we assume that :math:`A'` is positive definite.
+    For the derivation of the algorithm, we assume that :math:`A^-` is positive
+    definite.
 
     Assume that the Cholesky factorization of :math:`A`, i.e. a lower-triangular matrix
     :math:`L \in \mathbb{R}^{n \times n}` with :math:`A = L L^T`, is given.
     We want to find a fast and stable method to update the Cholesky factorization
-    :math:`L L^T` of :math:`A` to the Cholesky factorization :math:`A' = L' L'^T` of the
-    updated matrix :math:`A'`, where, again, :math:`L' \in \mathbb{R}^{n \times n}` is
-    lower-triangular.
+    :math:`L L^T` of :math:`A` to the Cholesky factorization :math:`A^- = L^- (L^-)^T`
+    of the updated matrix :math:`A^-`, where, again,
+    :math:`L^- \in \mathbb{R}^{n \times n}` is lower triangular.
 
     If we can construct an orthogonal transformation
     :math:`Q \in \mathbb{R}^{(n + 1) \times (n + 1)}` such that
@@ -422,19 +419,19 @@ def downdate_seeger(
         Q^T
         =
         \begin{pmatrix}
-            L' & v
+            L^- & v
         \end{pmatrix},
 
-    for some lower-triangular matrix :math:`L'`, then
+    for some lower-triangular matrix :math:`L^-`, then
 
     .. math::
-        L' L'^T + v v^T
+        L^- (L^-)^T + v v^T
         =
         \begin{pmatrix}
-            L' & v
+            L^- & v
         \end{pmatrix}
         \begin{pmatrix}
-            L' & v
+            L^- & v
         \end{pmatrix}^T
         =
         \begin{pmatrix}
@@ -447,9 +444,9 @@ def downdate_seeger(
         \end{pmatrix}
         = L L^T,
 
-    which is equivalent to :math:`L' L'^T = L L^T - v v^T`.
+    which is equivalent to :math:`L^- (L^-)^T = L L^T - v v^T`.
     This means that we can retrieve the updated Cholesky factor as
-    :math:`L' = L \cdot Q_{1:n, 1:n}^T`.
+    :math:`L^- = L \cdot Q_{1:n, 1:n}^T`.
 
     In the remainder of this section, we will derive another constraint on :math:`Q`
     which will directly give rise to an algorithm to compute :math:`Q`.
@@ -469,13 +466,13 @@ def downdate_seeger(
     :math:`p = L^{-1} v`, since :math:`L` is invertible.
 
     The vector :math:`p` can be used to cheaply check whether the downdate results in a
-    positive definite matrix, since :math:`p^T p < 1` if and only if :math:`A'` is
+    positive definite matrix, since :math:`p^T p < 1` if and only if :math:`A^-` is
     positive definite.
-    To see this, note that :math:`L` is invertible and that :math:`A'` is hence
+    To see this, note that :math:`L` is invertible and that :math:`A^-` is hence
     positive definite if and only if
 
     .. math::
-        L^{-1} A' L^{-T}
+        L^{-1} A^- L^{-T}
         = L^{-1} (L L^T - v v^T) L^{-T}
         = I - (L^{-1} v) (v^T L^{-T})
         = I - p p^T
@@ -503,8 +500,8 @@ def downdate_seeger(
         \quad \Leftrightarrow \quad
         q_{n + 1}^2 = 1 - p^T p.
 
-    Note that this is well-defined, since :math:`A'` is assumed to be positive definite,
-    which means that :math:`p^T p < 1`, i.e. :math:`1 - p^T p > 0`.
+    Note that this is well-defined, since :math:`A^-` is assumed to be positive
+    definite, which means that :math:`p^T p < 1`, i.e. :math:`1 - p^T p > 0`.
     All in all, our additional constraint on :math:`Q` can be formulated as
 
     .. math::
@@ -627,10 +624,10 @@ def downdate_seeger(
         Q^T
         =
         \begin{pmatrix}
-            L' & v
+            L^- & v
         \end{pmatrix},
 
-    i.e. :math:`L' = L Q_{1:n, 1:n}^T`.
+    i.e. :math:`L^- = L Q_{1:n, 1:n}^T`.
 
     Note that this algorithm is a minor modification of the `LINPACK` [2]_ routine
     :code:`dchdd`. The exact modifications are described in [1]_.

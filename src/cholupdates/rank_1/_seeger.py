@@ -397,14 +397,15 @@ def downdate_seeger(
     Note that :math:`A^-` need not be positive definite.
     In the following, we will derive an efficient criterion to check whether :math:`A^-`
     is positive definite.
-    For the derivation of the algorithm, we assume that :math:`A^-` is positive definite.
+    For the derivation of the algorithm, we assume that :math:`A^-` is positive
+    definite.
 
     Assume that the Cholesky factorization of :math:`A`, i.e. a lower-triangular matrix
     :math:`L \in \mathbb{R}^{n \times n}` with :math:`A = L L^T`, is given.
     We want to find a fast and stable method to update the Cholesky factorization
-    :math:`L L^T` of :math:`A` to the Cholesky factorization :math:`A^- = L^- (L^-)^T` of the
-    updated matrix :math:`A^-`, where, again, :math:`L^- \in \mathbb{R}^{n \times n}` is
-    lower-triangular.
+    :math:`L L^T` of :math:`A` to the Cholesky factorization :math:`A^- = L^- (L^-)^T`
+    of the updated matrix :math:`A^-`, where, again,
+    :math:`L^- \in \mathbb{R}^{n \times n}` is lower triangular.
 
     If we can construct an orthogonal transformation
     :math:`Q \in \mathbb{R}^{(n + 1) \times (n + 1)}` such that
@@ -499,8 +500,8 @@ def downdate_seeger(
         \quad \Leftrightarrow \quad
         q_{n + 1}^2 = 1 - p^T p.
 
-    Note that this is well-defined, since :math:`A^-` is assumed to be positive definite,
-    which means that :math:`p^T p < 1`, i.e. :math:`1 - p^T p > 0`.
+    Note that this is well-defined, since :math:`A^-` is assumed to be positive
+    definite, which means that :math:`p^T p < 1`, i.e. :math:`1 - p^T p > 0`.
     All in all, our additional constraint on :math:`Q` can be formulated as
 
     .. math::

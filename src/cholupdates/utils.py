@@ -82,7 +82,13 @@ def random_spd_matrix(
     # Sample a random Eigendecomposition
     spectrum, Q = random_spd_eigendecomposition(N, random_state=random_state)
 
-    return Q @ np.diag(spectrum) @ Q.T
+    # Assemble matrix
+    M = Q @ np.diag(spectrum) @ Q.T
+
+    # Symmetrize
+    M = 0.5 * (M + M.T)
+
+    return M
 
 
 def random_rank_1_downdate(

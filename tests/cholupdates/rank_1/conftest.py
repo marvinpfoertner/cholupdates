@@ -17,13 +17,6 @@ def N(request) -> int:
     return request.param
 
 
-@pytest.fixture(params=[pytest.param(seed, id=f"seed{seed}") for seed in range(5)])
-def random_state(request):
-    """Random states used to sample the test case input matrices. This is mostly used
-    for test parameterization."""
-    return np.random.RandomState(seed=request.param)
-
-
 @pytest.fixture()
 def A_eigh(
     N: int, random_state: np.random.RandomState

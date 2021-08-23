@@ -6,7 +6,8 @@ from typing import Tuple
 
 import numpy as np
 import pytest
-import scipy.stats
+
+import cholupdates.utils
 
 
 @pytest.fixture(params=[pytest.param(N, id=f"dim{N}") for N in [2, 3, 5, 10, 100]])
@@ -16,34 +17,13 @@ def N(request) -> int:
     return request.param
 
 
-@pytest.fixture(params=[pytest.param(seed, id=f"seed{seed}") for seed in range(5)])
-def random_state(request):
-    """Random states used to sample the test case input matrices. This is mostly used
-    for test parameterization."""
-    return np.random.RandomState(seed=request.param)
-
-
 @pytest.fixture()
 def A_eigh(
     N: int, random_state: np.random.RandomState
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Random eigendecomposition of a symmetric positive definite matrix of dimension
     :func:`N`, sampled from :func:`random_state`"""
-    # Generate a random orthonormal eigenbasis
-    basis = scipy.stats.special_ortho_group.rvs(N, random_state=random_state)
-
-    # Generate a random spectrum
-    spectrum = scipy.stats.gamma.rvs(
-        a=10.0,  # "Shape" parameter
-        loc=1.0,
-        scale=1.0,
-        size=N,
-        random_state=random_state,
-    )
-
-    spectrum.sort()
-
-    return (spectrum, basis)
+    return cholupdates.utils.random_spd_eigendecomposition(N, random_state=random_state)
 
 
 @pytest.fixture

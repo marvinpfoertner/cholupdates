@@ -6,30 +6,17 @@ from typing import Any, Dict
 
 import numpy as np
 import pytest
-import scipy.linalg
 
 import cholupdates
+import cholupdates.utils
 
 
 @pytest.fixture
-def v(N: int, L: np.ndarray, random_state: np.random.RandomState) -> np.ndarray:
+def v(L: np.ndarray, random_state: np.random.RandomState) -> np.ndarray:
     """Random vector of shape :func:`N` which defines a symmetric rank-1 downdate to
     :func:`A`"""
 
-    # Sample random direction
-    v_dir = random_state.normal(size=N)
-    v_dir /= np.linalg.norm(v_dir, ord=2)
-
-    # The downdated matrix is positive definite if and only if p^T p < 1 for L * p = v.
-    # Hence, a vector v = ||v||_2 * u, where `u` is a unit vector leads to a valid
-    # downdate if ||v||_2^2 < (1 / p^T p).
-    p_dir = scipy.linalg.solve_triangular(L, v_dir, lower=True)
-
-    v_norm_sq = random_state.uniform(0.2, 0.9) / np.dot(p_dir, p_dir)
-
-    v_norm = np.sqrt(v_norm_sq)
-
-    return v_norm * v_dir
+    return cholupdates.utils.random_rank_1_downdate(L, random_state=random_state)
 
 
 @pytest.fixture

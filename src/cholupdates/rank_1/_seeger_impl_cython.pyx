@@ -115,8 +115,9 @@ cpdef void update(
         # Apply (modified) Givens rotation to the remaining entries in the k-th column
         # of L and the remaining entries in v
 
-        # The first k entries in the k-th column of L are zero, since L is lower
-        # triangular. Moreover, the first k entries of v are zero.
+        # We only operate on the lower triangular part of L, and we pretend the strict
+        # upper triangular part to contain zeros.
+        # Moreover, the first k - 1 entries of v are zeros.
         # Since we already applied the Givens rotation to the k-th diagonal element of L
         # and the k-th element of v, it suffices to apply it to the slices
         # L[(k + 1):, k] and v[(k + 1):] here

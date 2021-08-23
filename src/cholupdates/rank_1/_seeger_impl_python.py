@@ -65,8 +65,7 @@ def update(L: np.ndarray, v: np.ndarray) -> None:
     L_buf_off = 0
 
     for k in range(N):
-        # At this point L/L_buf contains a lower triangular matrix and the first k
-        # entries of v are zeros
+        # At this point the first k entries of v are zeros
 
         # Generate Givens rotation which eliminates the k-th entry of v by rotating onto
         # the k-th diagonal entry of L and apply it only to these entries of (L|v)
@@ -88,8 +87,12 @@ def update(L: np.ndarray, v: np.ndarray) -> None:
         # Apply (modified) Givens rotation to the remaining entries in the k-th column
         # of L and the remaining entries in v
 
-        # The first k entries in the k-th column of L are zero, since L is lower
-        # triangular, so we only need to consider indices larger than or equal to i
+        # We only operate on the lower triangular part of L, and we pretend the strict
+        # upper triangular part to contain zeros.
+        # Moreover, the first k - 1 entries of v are zeros.
+        # Since we already applied the Givens rotation to the k-th diagonal element of L
+        # and the k-th element of v, it suffices to apply it to the slices
+        # L[(k + 1):, k] and v[(k + 1):] here
         i = k + 1
 
         if i < N:

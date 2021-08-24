@@ -32,7 +32,7 @@ def test_memory_order(L: np.ndarray, v: np.ndarray, impl: str):
         if L_dtype is not np.float64 or v_dtype is not np.float64
     ],
 )
-def test_raise_on_wrong_dtype(L_dtype, v_dtype, impl):
+def test_raise_on_wrong_dtype(L_dtype: np.dtype, v_dtype: np.dtype, impl: str):
     """Tests whether a :class:`TypeError` is raised if the Cholesky factor or the vector
     :code:`v` have an unsupported dtype."""
 

@@ -1,4 +1,4 @@
-""" Common fixtures for all rank-1 modification tests """
+"""Common fixtures for all rank-1 modification tests."""
 
 # pylint: disable=redefined-outer-name
 
@@ -12,8 +12,7 @@ import cholupdates.utils
 
 @pytest.fixture(params=[pytest.param(N, id=f"dim{N}") for N in [1, 2, 3, 5, 10, 100]])
 def N(request) -> int:
-    """Dimension of the matrix to be updated. This is mostly used for test
-    parameterization."""
+    """Dimension of the matrix to be modified."""
     return request.param
 
 
@@ -27,7 +26,7 @@ def A_eigh(N: int, rng: np.random.Generator) -> Tuple[np.ndarray, np.ndarray]:
 @pytest.fixture
 def A(A_eigh: Tuple[np.ndarray, np.ndarray]) -> np.ndarray:
     """Symmetric positive definite matrix of dimension :func:`N` defined by the
-    eigendecomposition `A_eigh`, sampled from :func:`random_state`"""
+    eigendecomposition `A_eigh`, sampled from :func:`rng`"""
     spectrum, Q = A_eigh
 
     return Q @ np.diag(spectrum) @ Q.T

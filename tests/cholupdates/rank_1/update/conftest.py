@@ -37,7 +37,7 @@ def A_prime(A: np.ndarray, v: np.ndarray) -> np.ndarray:
     )
 )
 def method_kwargs(request) -> Dict[str, Any]:
-    """The update algorithm to be tested."""
+    """Configuration of the update algorithm to be tested."""
     return request.param
 
 

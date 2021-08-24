@@ -12,13 +12,13 @@ import cholupdates
 def test_memory_order(L: np.ndarray, v: np.ndarray, impl: str):
     """Assert that the resulting array has the same memory order as the input array"""
 
-    L_prime = cholupdates.rank_1.downdate_seeger(L, v, impl=impl)
+    L_dd = cholupdates.rank_1.downdate_seeger(L, v, impl=impl)
 
     if L.flags.c_contiguous:
-        assert L_prime.flags.c_contiguous
+        assert L_dd.flags.c_contiguous
     else:
         assert L.flags.f_contiguous
-        assert L_prime.flags.f_contiguous
+        assert L_dd.flags.f_contiguous
 
 
 @pytest.mark.parametrize(

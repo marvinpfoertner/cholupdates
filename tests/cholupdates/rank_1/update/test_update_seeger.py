@@ -10,13 +10,13 @@ import cholupdates
 def test_memory_order(L: np.ndarray, v: np.ndarray, impl: str):
     """Assert that the resulting array has the same memory order as the input array"""
 
-    L_prime = cholupdates.rank_1.update_seeger(L, v, impl=impl)
+    L_ud = cholupdates.rank_1.update_seeger(L, v, impl=impl)
 
     if L.flags.c_contiguous:
-        assert L_prime.flags.c_contiguous
+        assert L_ud.flags.c_contiguous
     else:
         assert L.flags.f_contiguous
-        assert L_prime.flags.f_contiguous
+        assert L_ud.flags.f_contiguous
 
 
 @pytest.mark.parametrize(
@@ -32,7 +32,7 @@ def test_memory_order(L: np.ndarray, v: np.ndarray, impl: str):
         if L_dtype is not np.float64 or v_dtype is not np.float64
     ],
 )
-def test_raise_on_wrong_dtype(L_dtype, v_dtype, impl):
+def test_raise_on_wrong_dtype(L_dtype: np.dtype, v_dtype: np.dtype, impl: str):
     """Tests whether a :class:`TypeError` is raised if the Cholesky factor or the vector
     :code:`v` have an unsupported dtype."""
 

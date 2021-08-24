@@ -12,15 +12,15 @@ import cholupdates.utils
 
 
 @pytest.fixture
-def v(L: np.ndarray, random_state: np.random.RandomState) -> np.ndarray:
+def v(L: np.ndarray, rng: np.random.Generator) -> np.ndarray:
     """Random vector of shape :func:`N` which defines a symmetric rank-1 downdate to
     :func:`A`"""
 
-    return cholupdates.utils.random_rank_1_downdate(L, random_state=random_state)
+    return cholupdates.utils.random_rank_1_downdate(L, rng=rng)
 
 
 @pytest.fixture
-def A_prime(A: np.ndarray, v: np.ndarray) -> np.ndarray:
+def A_dd(A: np.ndarray, v: np.ndarray) -> np.ndarray:
     """Downdated input matrix, i.e. :func:`A` after application of the symmetric rank-1
     downdate defined by :func:`v`"""
     return A - np.outer(v, v)
@@ -44,8 +44,8 @@ def method_kwargs(request) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def L_prime(L: np.ndarray, v: np.ndarray, method_kwargs: Dict[str, Any]) -> np.ndarray:
-    """Lower cholesky factor of :func:`A_prime` computed via
+def L_dd(L: np.ndarray, v: np.ndarray, method_kwargs: Dict[str, Any]) -> np.ndarray:
+    """Lower cholesky factor of :func:`A_dd` computed via
     :func:`cholupdates.rank_1.downdate`"""
     return cholupdates.rank_1.downdate(
         L=L.copy(order="K"),

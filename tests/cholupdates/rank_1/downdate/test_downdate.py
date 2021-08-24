@@ -9,19 +9,21 @@ import scipy.linalg
 import cholupdates
 
 
-def test_valid_matrix_square_root(A_prime: np.ndarray, L_prime: np.ndarray):
+def test_valid_matrix_square_root(A_dd: np.ndarray, L_dd: np.ndarray):
     """Assert that the resulting Cholesky factor right-multiplied with its transpose
     is (up to numerical imprecisions) equal to the updated matrix, i.e. that the
     Cholesky factor is a valid matrix square root"""
-    np.testing.assert_allclose(L_prime @ L_prime.T, A_prime)
+    np.testing.assert_allclose(L_dd @ L_dd.T, A_dd)
 
 
-def test_positive_diagonal(L_prime: np.ndarray):
+def test_positive_diagonal(L_dd: np.ndarray):
     """Assert that the resulting Cholesky factor has a positive diagonal"""
-    np.testing.assert_array_less(0.0, np.diag(L_prime))
+    np.testing.assert_array_less(0.0, np.diag(L_dd))
 
 
-def test_upper_triangular_part_not_accessed(L, v, L_prime, method_kwargs):
+def test_upper_triangular_part_not_accessed(
+    L: np.ndarray, v: np.ndarray, L_dd: np.ndarray, method_kwargs: Dict[str, Any]
+):
     """Assert that the upper triangular part of the Cholesky factor does neither read
     from nor write to the upper triangular part of the Cholesky factor"""
     N = L.shape[0]
@@ -44,7 +46,7 @@ def test_upper_triangular_part_not_accessed(L, v, L_prime, method_kwargs):
 
     np.testing.assert_array_equal(
         np.tril(L_mod_upd),
-        np.tril(L_prime),
+        np.tril(L_dd),
         err_msg=(
             "The rank-1 downdate did not ignore the upper triangular part of the "
             "original Cholesky factor"
@@ -55,7 +57,13 @@ def test_upper_triangular_part_not_accessed(L, v, L_prime, method_kwargs):
 @pytest.mark.parametrize(
     "overwrite_L,overwrite_v", [(False, False), (True, False), (False, True)]
 )
-def test_no_input_mutation(L, v, overwrite_L, overwrite_v, method_kwargs):
+def test_no_input_mutation(
+    L: np.ndarray,
+    v: np.ndarray,
+    overwrite_L: bool,
+    overwrite_v: bool,
+    method_kwargs: Dict[str, Any],
+):
     """Test whether the input arrays are left unmodified if the respective overwrite
     flag is set to :code:`False`"""
     L_copy = L.copy(order="K")
@@ -77,7 +85,9 @@ def test_no_input_mutation(L, v, overwrite_L, overwrite_v, method_kwargs):
 
 
 @pytest.mark.parametrize("shape", [(3, 2), (3,), (1, 3, 3)])
-def test_raise_on_invalid_cholesky_factor_shape(shape, method_kwargs):
+def test_raise_on_invalid_cholesky_factor_shape(
+    shape: Tuple[int, ...], method_kwargs: Dict[str, Any]
+):
     """Tests whether a :class:`ValueError` is raised if the shape of the Cholesky factor
     is not :code:`(N, N)` for some N"""
     with pytest.raises(ValueError):
@@ -101,19 +111,19 @@ def test_raise_on_invalid_vector_shape(
 def test_raise_on_vector_dimension_mismatch(
     N: int,
     L: np.ndarray,
-    random_state: np.random.RandomState,
+    rng: np.random.Generator,
     method_kwargs: Dict[str, Any],
 ):
     """Tests whether a :class:`ValueError` is raised if the shape of the vector is not
     compatible with the shape of the Cholesky factor"""
 
     # Generate arbitrary v with incompatible length
-    v_len = N + random_state.randint(-N, N) + 1
+    v_len = N + rng.integers(-N, N, endpoint=True) + 1
 
     if v_len == N:
         v_len += 1
 
-    v = random_state.rand(v_len)
+    v = rng.random(v_len)
 
     with pytest.raises(ValueError):
         cholupdates.rank_1.downdate(L=L, v=v, **method_kwargs)
@@ -123,14 +133,14 @@ def test_raise_on_zero_diagonal(
     N: int,
     L: np.ndarray,
     v: np.ndarray,
-    random_state: np.random.RandomState,
+    rng: np.random.Generator,
     method_kwargs: Dict[str, Any],
 ):
     """Tests whether a :class:`numpy.linalg.LinAlgError` is raised if the diagonal of
     the Cholesky factor contains zeros."""
     L = L.copy(order="K")
 
-    k = random_state.randint(N)
+    k = rng.integers(N)
 
     L[k, k] = 0.0
 
@@ -141,7 +151,7 @@ def test_raise_on_zero_diagonal(
 def test_raise_on_indefinite_result(
     N: int,
     L: np.ndarray,
-    random_state: np.random.RandomState,
+    rng: np.random.Generator,
     method_kwargs: Dict[str, Any],
 ):
     """Tests whether a :class:`numpy.linalg.LinAlgError` is raised if the downdate
@@ -150,11 +160,11 @@ def test_raise_on_indefinite_result(
     # The downdated matrix is positive definite if and only if p^T p < 1 for L * p = v.
     # Hence, the vector v' := a * v defines an invalid downdate if and only if
     # a >= (1 / ||p||_2).
-    v = random_state.normal(size=N)
+    v = rng.normal(size=N)
 
     p = scipy.linalg.solve_triangular(L, v, lower=True)
 
-    v *= (1.0 + random_state.gamma(shape=2.0, scale=2.0)) / np.linalg.norm(p, ord=2)
+    v *= (1.0 + rng.gamma(shape=2.0, scale=2.0)) / np.linalg.norm(p, ord=2)
 
     with pytest.raises(np.linalg.LinAlgError):
         cholupdates.rank_1.downdate(L, v, **method_kwargs)

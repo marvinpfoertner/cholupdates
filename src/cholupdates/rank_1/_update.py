@@ -110,10 +110,10 @@ def update(
     >>> v
     array([ 1., 25., 10.])
 
-    We want to compute the lower triangular Cholesky factor :code:`L_prime` of
+    We want to compute the lower triangular Cholesky factor :code:`L_ud` of
 
-    >>> A_prime = A + np.outer(v, v)
-    >>> A_prime
+    >>> A_ud = A + np.outer(v, v)
+    >>> A_ud
     array([[  2.1,  25.1,  10.1],
            [ 25.1, 627.1, 250.1],
            [ 10.1, 250.1, 103.1]])
@@ -127,30 +127,30 @@ def update(
            [0.09534626, 1.44599761, 0.        ],
            [0.09534626, 0.06286946, 1.75697368]])
 
-    The function :func:`cholupdates.rank_1.update` can compute :code:`L_prime` from
+    The function :func:`cholupdates.rank_1.update` can compute :code:`L_ud` from
     :code:`L` efficiently
 
     >>> import cholupdates
-    >>> L_prime = cholupdates.rank_1.update(L, v, method="seeger")
-    >>> np.tril(L_prime)
+    >>> L_ud = cholupdates.rank_1.update(L, v, method="seeger")
+    >>> np.tril(L_ud)
     array([[ 1.44913767,  0.        ,  0.        ],
            [17.32064554, 18.08577447,  0.        ],
            [ 6.96966215,  7.15374133,  1.82969791]])
 
     Did it work?
 
-    >>> np.allclose(A_prime, np.tril(L_prime) @ np.tril(L_prime).T)
+    >>> np.allclose(A_ud, np.tril(L_ud) @ np.tril(L_ud).T)
     True
 
-    We could also compute :code:`L_prime` by directly computing the Cholesky
-    factorization of :code:`A_prime` (which is however less efficient)
+    We could also compute :code:`L_ud` by directly computing the Cholesky
+    factorization of :code:`A_ud` (which is however less efficient)
 
-    >>> L_prime_cho = cholupdates.rank_1.update(L, v, method="cho_factor")
-    >>> np.tril(L_prime_cho)
+    >>> L_ud_cho = cholupdates.rank_1.update(L, v, method="cho_factor")
+    >>> np.tril(L_ud_cho)
     array([[ 1.44913767,  0.        ,  0.        ],
            [17.32064554, 18.08577447,  0.        ],
            [ 6.96966215,  7.15374133,  1.82969791]])
-    >>> np.allclose(np.tril(L_prime), np.tril(L_prime_cho))
+    >>> np.allclose(np.tril(L_ud), np.tril(L_ud_cho))
     True
     """
 

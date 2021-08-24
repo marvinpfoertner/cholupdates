@@ -118,12 +118,12 @@ def test_raise_on_vector_dimension_mismatch(
     compatible with the shape of the Cholesky factor"""
 
     # Generate arbitrary v with incompatible length
-    v_len = N + rng.randint(-N, N) + 1
+    v_len = N + rng.integers(-N, N, endpoint=True) + 1
 
     if v_len == N:
         v_len += 1
 
-    v = rng.rand(v_len)
+    v = rng.random(v_len)
 
     with pytest.raises(ValueError):
         cholupdates.rank_1.downdate(L=L, v=v, **method_kwargs)
@@ -140,7 +140,7 @@ def test_raise_on_zero_diagonal(
     the Cholesky factor contains zeros."""
     L = L.copy(order="K")
 
-    k = rng.randint(N)
+    k = rng.integers(N)
 
     L[k, k] = 0.0
 

@@ -83,7 +83,7 @@ def random_spd_matrix(
         return A
 
     # Sample a random Eigendecomposition
-    spectrum, Q = random_spd_eigendecomposition(N, random_state=rng)
+    spectrum, Q = random_spd_eigendecomposition(N, rng=rng)
 
     # Assemble matrix
     M = Q @ np.diag(spectrum) @ Q.T

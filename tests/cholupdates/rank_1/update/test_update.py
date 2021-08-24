@@ -1,5 +1,7 @@
 """Tests for the implementation of symmetric rank-1 updates to a Cholesky factor"""
 
+from typing import Any, Dict, Tuple
+
 import numpy as np
 import pytest
 
@@ -18,7 +20,9 @@ def test_positive_diagonal(L_prime: np.ndarray):
     np.testing.assert_array_less(0.0, np.diag(L_prime))
 
 
-def test_upper_triangular_part_not_accessed(L, v, L_prime, method_kwargs):
+def test_upper_triangular_part_not_accessed(
+    L: np.ndarray, v: np.ndarray, L_prime: np.ndarray, method_kwargs: Dict[str, Any]
+):
     """Assert that the upper triangular part of the Cholesky factor does neither read
     from nor write to the upper triangular part of the Cholesky factor"""
     N = L.shape[0]
@@ -52,7 +56,13 @@ def test_upper_triangular_part_not_accessed(L, v, L_prime, method_kwargs):
 @pytest.mark.parametrize(
     "overwrite_L,overwrite_v", [(False, False), (True, False), (False, True)]
 )
-def test_no_input_mutation(L, v, overwrite_L, overwrite_v, method_kwargs):
+def test_no_input_mutation(
+    L: np.ndarray,
+    v: np.ndarray,
+    overwrite_L: bool,
+    overwrite_v: bool,
+    method_kwargs: Dict[str, Any],
+):
     """Test whether the input arrays are left unmodified if the respective overwrite
     flag is set to :code:`False`"""
     L_copy = L.copy(order="K")
@@ -74,9 +84,11 @@ def test_no_input_mutation(L, v, overwrite_L, overwrite_v, method_kwargs):
 
 
 @pytest.mark.parametrize("shape", [(3, 2), (3,), (1, 3, 3)])
-def test_raise_on_invalid_cholesky_factor_shape(shape, method_kwargs):
+def test_raise_on_invalid_cholesky_factor_shape(
+    shape: Tuple[int, ...], method_kwargs: Dict[str, Any]
+):
     """Tests whether a :class:`ValueError` is raised if the shape of the Cholesky factor
-    is not :code:`(N, N)` for some N"""
+    is not :code:`(N, N)` for some :code:`N`"""
     with pytest.raises(ValueError):
         cholupdates.rank_1.update(
             L=np.ones(shape), v=np.ones(shape[-1]), **method_kwargs
@@ -84,14 +96,18 @@ def test_raise_on_invalid_cholesky_factor_shape(shape, method_kwargs):
 
 
 @pytest.mark.parametrize("shape", [(3, 2), (3, 1), (1, 3, 3)])
-def test_raise_on_invalid_vector_shape(shape, method_kwargs):
+def test_raise_on_invalid_vector_shape(
+    shape: Tuple[int, ...], method_kwargs: Dict[str, Any]
+):
     """Tests whether a :class:`ValueError` is raised if the vector has more than one
     dimension"""
     with pytest.raises(ValueError):
         cholupdates.rank_1.update(L=np.eye(shape[0]), v=np.ones(shape), **method_kwargs)
 
 
-def test_raise_on_vector_dimension_mismatch(L, method_kwargs):
+def test_raise_on_vector_dimension_mismatch(
+    L: np.ndarray, method_kwargs: Dict[str, Any]
+):
     """Tests whether a :class:`ValueError` is raised if the shape of the vector is not
     compatible with the shape of the Cholesky factor"""
     N = L.shape[0]
@@ -108,7 +124,9 @@ def test_raise_on_vector_dimension_mismatch(L, method_kwargs):
         cholupdates.rank_1.update(L=L, v=v, **method_kwargs)
 
 
-def test_raise_on_zero_diagonal(L, v, method_kwargs):
+def test_raise_on_zero_diagonal(
+    L: np.ndarray, v: np.ndarray, method_kwargs: Dict[str, Any]
+):
     """Tests whether a :class:`numpy.linalg.LinAlgError` is raised if the diagonal of
     the Cholesky factor contains zeros."""
     L = L.copy(order="K")
@@ -121,7 +139,12 @@ def test_raise_on_zero_diagonal(L, v, method_kwargs):
         cholupdates.rank_1.update(L, v, **method_kwargs)
 
 
-def test_ill_conditioned_matrix(A, A_eigh, L, method_kwargs):
+def test_ill_conditioned_matrix(
+    A: np.ndarray,
+    A_eigh: Tuple[np.ndarray, np.ndarray],
+    L: np.ndarray,
+    method_kwargs: Dict[str, Any],
+):
     """Tests whether the algorithm still works if the update blows up the condition
     number of the updated matrix."""
     spectrum, Q = A_eigh

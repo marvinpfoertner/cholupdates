@@ -14,13 +14,13 @@ def random_spd_matrix(request, rng: np.random.Generator) -> np.ndarray:
     return cholupdates.utils.random_spd_matrix(request.param, rng=rng)
 
 
-def test_random_spd_matrix_symmetric(random_spd_matrix):
+def test_random_spd_matrix_symmetric(random_spd_matrix: np.ndarray):
     """Test whether the random symmetric, positive definite matrix is indeed
     symmetric."""
     np.testing.assert_equal(random_spd_matrix, random_spd_matrix.T)
 
 
-def test_random_spd_matrix_positive_definite(random_spd_matrix):
+def test_random_spd_matrix_positive_definite(random_spd_matrix: np.ndarray):
     """Test whether the random symmetric, positive-definite matrix is indeed positive
     definite."""
     np.testing.assert_array_equal(np.linalg.eigvalsh(random_spd_matrix) > 0.0, True)

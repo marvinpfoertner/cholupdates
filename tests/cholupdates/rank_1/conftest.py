@@ -34,7 +34,7 @@ def A(A_eigh: Tuple[np.ndarray, np.ndarray]) -> np.ndarray:
 
 
 @pytest.fixture(params=["C", "F"], ids=["orderC", "orderF"])
-def L(request, A):
+def L(request, A: np.ndarray):
     """Lower Cholesky factor of :func:`A`. This fixture is parameterized to emit both
     row- and column major Cholesky factors for every input matrix."""
     L = np.linalg.cholesky(A)

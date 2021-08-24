@@ -42,7 +42,9 @@ def random_spd_eigendecomposition(
 
     # Generate a random orthonormal eigenbasis
     if N == 1:
-        basis = np.ones_like(spectrum, shape=(N, N))
+        basis = np.ones_like(  # pylint:disable=unexpected-keyword-arg
+            spectrum, shape=(N, N)
+        )
     else:
         basis = scipy.stats.special_ortho_group.rvs(N, random_state=rng)
 

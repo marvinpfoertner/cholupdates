@@ -8,20 +8,20 @@ import pytest
 import cholupdates
 
 
-def test_valid_matrix_square_root(A_prime: np.ndarray, L_prime: np.ndarray):
+def test_valid_matrix_square_root(A_ud: np.ndarray, L_ud: np.ndarray):
     """Assert that the resulting Cholesky factor right-multiplied with its transpose
     is (up to numerical imprecisions) equal to the updated matrix, i.e. that the
     Cholesky factor is a valid matrix square root"""
-    np.testing.assert_allclose(L_prime @ L_prime.T, A_prime)
+    np.testing.assert_allclose(L_ud @ L_ud.T, A_ud)
 
 
-def test_positive_diagonal(L_prime: np.ndarray):
+def test_positive_diagonal(L_ud: np.ndarray):
     """Assert that the resulting Cholesky factor has a positive diagonal"""
-    np.testing.assert_array_less(0.0, np.diag(L_prime))
+    np.testing.assert_array_less(0.0, np.diag(L_ud))
 
 
 def test_upper_triangular_part_not_accessed(
-    L: np.ndarray, v: np.ndarray, L_prime: np.ndarray, method_kwargs: Dict[str, Any]
+    L: np.ndarray, v: np.ndarray, L_ud: np.ndarray, method_kwargs: Dict[str, Any]
 ):
     """Assert that the upper triangular part of the Cholesky factor does neither read
     from nor write to the upper triangular part of the Cholesky factor"""
@@ -45,7 +45,7 @@ def test_upper_triangular_part_not_accessed(
 
     np.testing.assert_array_equal(
         np.tril(L_mod_upd),
-        np.tril(L_prime),
+        np.tril(L_ud),
         err_msg=(
             "The rank-1 update did not ignore the upper triangular part of the "
             "original Cholesky factor"

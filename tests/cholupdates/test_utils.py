@@ -9,16 +9,9 @@ import cholupdates.utils
 
 
 @pytest.fixture(params=[pytest.param(N, id=f"dim{N}") for N in [2, 3, 5, 10, 100]])
-def N(request) -> int:
-    """Dimension of the matrix to be updated. This is mostly used for test
-    parameterization."""
-    return request.param
-
-
-@pytest.fixture
-def random_spd_matrix(N, random_state):
+def random_spd_matrix(request, rng: np.random.Generator) -> np.ndarray:
     """Random symmetric, positive-definite matrix whose properties will be tested."""
-    return cholupdates.utils.random_spd_matrix(N, random_state=random_state)
+    return cholupdates.utils.random_spd_matrix(request.param, rng=rng)
 
 
 def test_random_spd_matrix_symmetric(random_spd_matrix):

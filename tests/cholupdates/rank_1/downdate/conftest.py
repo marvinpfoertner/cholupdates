@@ -12,11 +12,11 @@ import cholupdates.utils
 
 
 @pytest.fixture
-def v(L: np.ndarray, random_state: np.random.RandomState) -> np.ndarray:
+def v(L: np.ndarray, rng: np.random.Generator) -> np.ndarray:
     """Random vector of shape :func:`N` which defines a symmetric rank-1 downdate to
     :func:`A`"""
 
-    return cholupdates.utils.random_rank_1_downdate(L, random_state=random_state)
+    return cholupdates.utils.random_rank_1_downdate(L, rng=rng)
 
 
 @pytest.fixture

@@ -11,10 +11,10 @@ import cholupdates
 
 
 @pytest.fixture
-def v(N: int, random_state: np.random.RandomState) -> np.ndarray:
+def v(N: int, rng: np.random.Generator) -> np.ndarray:
     """Random vector of shape :func:`N` which defines a symmetric rank-1 update to
     :func:`A`"""
-    return random_state.normal(scale=10, size=N)
+    return rng.normal(scale=10, size=N)
 
 
 @pytest.fixture

@@ -17,13 +17,11 @@ def N(request) -> int:
     return request.param
 
 
-@pytest.fixture()
-def A_eigh(
-    N: int, random_state: np.random.RandomState
-) -> Tuple[np.ndarray, np.ndarray]:
+@pytest.fixture
+def A_eigh(N: int, rng: np.random.Generator) -> Tuple[np.ndarray, np.ndarray]:
     """Random eigendecomposition of a symmetric positive definite matrix of dimension
-    :func:`N`, sampled from :func:`random_state`"""
-    return cholupdates.utils.random_spd_eigendecomposition(N, random_state=random_state)
+    :func:`N`, sampled from :func:`rng`"""
+    return cholupdates.utils.random_spd_eigendecomposition(N, rng=rng)
 
 
 @pytest.fixture

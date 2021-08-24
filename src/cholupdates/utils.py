@@ -7,7 +7,7 @@ import scipy.stats
 
 
 def random_spd_eigendecomposition(
-    N: int, random_state: Optional[np.random.RandomState] = None
+    N: int, rng: Optional[np.random.Generator] = None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Generates a random eigendecomposition of a symmetric positive definite matrix.
 
@@ -18,7 +18,7 @@ def random_spd_eigendecomposition(
     ----------
     N :
         Dimension of the matrix.
-    random_state :
+    rng :
         The random number generator to be used to sample the eigendecomposition.
 
     Returns
@@ -35,7 +35,7 @@ def random_spd_eigendecomposition(
         loc=1.0,
         scale=1.0,
         size=N,
-        random_state=random_state,
+        random_state=rng,
     )
 
     spectrum.sort()
@@ -44,13 +44,13 @@ def random_spd_eigendecomposition(
     if N == 1:
         basis = np.ones_like(spectrum, shape=(N, N))
     else:
-        basis = scipy.stats.special_ortho_group.rvs(N, random_state=random_state)
+        basis = scipy.stats.special_ortho_group.rvs(N, random_state=rng)
 
     return spectrum, basis
 
 
 def random_spd_matrix(
-    N: int, fast: bool = False, random_state: Optional[np.random.RandomState] = None
+    N: int, fast: bool = False, rng: Optional[np.random.Generator] = None
 ) -> np.ndarray:
     """Generates a random symmetric positive-definite matrix.
 
@@ -61,7 +61,7 @@ def random_spd_matrix(
     fast:
         If this is set to :code:`True`, the method will use a fast but biased method to
         draw the matrix. Otherwise, a random eigendecomposition will be drawn.
-    random_state :
+    rng :
         The random number generator to be used to sample the matrix.
 
     Returns
@@ -70,7 +70,7 @@ def random_spd_matrix(
     """
     if fast:
         # Generate positive-semidefinite matrix from square-root
-        A = scipy.stats.norm.rvs(size=(N, N), random_state=random_state)
+        A = scipy.stats.norm.rvs(size=(N, N), random_state=rng)
         A = A @ A.T
 
         # Make positive definite
@@ -83,7 +83,7 @@ def random_spd_matrix(
         return A
 
     # Sample a random Eigendecomposition
-    spectrum, Q = random_spd_eigendecomposition(N, random_state=random_state)
+    spectrum, Q = random_spd_eigendecomposition(N, random_state=rng)
 
     # Assemble matrix
     M = Q @ np.diag(spectrum) @ Q.T
@@ -95,7 +95,7 @@ def random_spd_matrix(
 
 
 def random_rank_1_downdate(
-    L: np.ndarray, random_state: Optional[np.random.RandomState] = None
+    L: np.ndarray, rng: Optional[np.random.Generator] = None
 ) -> np.ndarray:
     """Generates a random rank-1 downdate for a given Cholesky factor which, when
     applied, will result in a positive-definite matrix again.
@@ -104,7 +104,7 @@ def random_rank_1_downdate(
     ----------
     L :
         The lower-triangular Cholesky factor of the matrix to be downdated.
-    random_state :
+    rng :
         The random number generator to be used to sample the matrix.
 
     Returns
@@ -115,7 +115,7 @@ def random_rank_1_downdate(
     N = L.shape[0]
 
     # Sample uniformly random direction
-    v_dir = scipy.stats.norm.rvs(size=N, random_state=random_state)
+    v_dir = scipy.stats.norm.rvs(size=N, random_state=rng)
     v_dir /= np.linalg.norm(v_dir, ord=2)
 
     # The downdated matrix is positive semi-definite if and only if p^T p < 1 for
@@ -124,7 +124,7 @@ def random_rank_1_downdate(
     p_dir = scipy.linalg.solve_triangular(L, v_dir, lower=True)
 
     v_norm_sq = scipy.stats.uniform.rvs(
-        loc=0.2, scale=0.9 - 0.2, size=N, random_state=random_state
+        loc=0.2, scale=0.9 - 0.2, size=N, random_state=rng
     ) / np.dot(p_dir, p_dir)
 
     v_norm = np.sqrt(v_norm_sq)

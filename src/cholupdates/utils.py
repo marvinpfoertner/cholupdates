@@ -41,7 +41,10 @@ def random_spd_eigendecomposition(
     spectrum.sort()
 
     # Generate a random orthonormal eigenbasis
-    basis = scipy.stats.special_ortho_group.rvs(N, random_state=random_state)
+    if N == 1:
+        basis = np.ones_like(spectrum, shape=(N, N))
+    else:
+        basis = scipy.stats.special_ortho_group.rvs(N, random_state=random_state)
 
     return spectrum, basis
 

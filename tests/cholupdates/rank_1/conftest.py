@@ -10,7 +10,7 @@ import pytest
 import cholupdates.utils
 
 
-@pytest.fixture(params=[pytest.param(N, id=f"dim{N}") for N in [2, 3, 5, 10, 100]])
+@pytest.fixture(params=[pytest.param(N, id=f"dim{N}") for N in [1, 2, 3, 5, 10, 100]])
 def N(request) -> int:
     """Dimension of the matrix to be updated. This is mostly used for test
     parameterization."""

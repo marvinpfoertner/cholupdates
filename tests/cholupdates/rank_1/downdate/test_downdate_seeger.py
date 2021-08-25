@@ -31,7 +31,10 @@ def test_memory_order(L: np.ndarray, v: np.ndarray, impl: str):
         # There seems to be a bug in pylint, since it marks `L_dtype` and `v_dtype` as
         # undefined here
         # pylint: disable=undefined-variable
-        if L_dtype is not np.float64 or v_dtype is not np.float64
+        if (
+            (L_dtype, v_dtype)
+            not in [(np.float32, np.float32), (np.float64, np.float64)]
+        )
     ],
 )
 def test_raise_on_wrong_dtype(L_dtype, v_dtype, impl):

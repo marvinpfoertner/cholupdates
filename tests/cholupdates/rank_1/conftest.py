@@ -16,11 +16,21 @@ def N(request) -> int:
     return request.param
 
 
+@pytest.fixture(
+    params=[pytest.param(np.double, id="double"), pytest.param(np.single, id="single")]
+)
+def dtype(request) -> np.dtype:
+    """Dtype of the matrix to be modified."""
+    return request.param
+
+
 @pytest.fixture
-def A_eigh(N: int, rng: np.random.Generator) -> Tuple[np.ndarray, np.ndarray]:
+def A_eigh(
+    N: int, dtype: np.dtype, rng: np.random.Generator
+) -> Tuple[np.ndarray, np.ndarray]:
     """Random eigendecomposition of a symmetric positive definite matrix of dimension
     :func:`N`, sampled from :func:`rng`"""
-    return cholupdates.utils.random_spd_eigendecomposition(N, rng=rng)
+    return cholupdates.utils.random_spd_eigendecomposition(N, dtype=dtype, rng=rng)
 
 
 @pytest.fixture

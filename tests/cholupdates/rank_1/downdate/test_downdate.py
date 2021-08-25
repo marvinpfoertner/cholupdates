@@ -13,7 +13,11 @@ def test_valid_matrix_square_root(A_dd: np.ndarray, L_dd: np.ndarray):
     """Assert that the resulting Cholesky factor right-multiplied with its transpose
     is (up to numerical imprecisions) equal to the updated matrix, i.e. that the
     Cholesky factor is a valid matrix square root"""
-    np.testing.assert_allclose(L_dd @ L_dd.T, A_dd)
+    np.testing.assert_allclose(
+        L_dd @ L_dd.T,
+        A_dd,
+        rtol=3e-2 if L_dd.dtype == np.single else 1e-7,
+    )
 
 
 def test_positive_diagonal(L_dd: np.ndarray):
@@ -150,6 +154,7 @@ def test_raise_on_zero_diagonal(
 
 def test_raise_on_indefinite_result(
     N: int,
+    dtype: np.dtype,
     L: np.ndarray,
     rng: np.random.Generator,
     method_kwargs: Dict[str, Any],
@@ -160,11 +165,11 @@ def test_raise_on_indefinite_result(
     # The downdated matrix is positive definite if and only if p^T p < 1 for L * p = v.
     # Hence, the vector v' := a * v defines an invalid downdate if and only if
     # a >= (1 / ||p||_2).
-    v = rng.normal(size=N)
+    v = rng.normal(size=N).astype(dtype, copy=False)
 
     p = scipy.linalg.solve_triangular(L, v, lower=True)
 
-    v *= (1.0 + rng.gamma(shape=2.0, scale=2.0)) / np.linalg.norm(p, ord=2)
+    v *= (1.0 + 0.2) / np.linalg.norm(p, ord=2)
 
     with pytest.raises(np.linalg.LinAlgError):
         cholupdates.rank_1.downdate(L, v, **method_kwargs)
@@ -190,4 +195,8 @@ def test_ill_conditioned_matrix(
     # Check quality
     A_down = A - np.outer(v, v)
 
-    np.testing.assert_allclose(L_upd @ L_upd.T, A_down)
+    np.testing.assert_allclose(
+        L_upd @ L_upd.T,
+        A_down,
+        rtol=2e-1 if A.dtype == np.single else 1e-7,
+    )

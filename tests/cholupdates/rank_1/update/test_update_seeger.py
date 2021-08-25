@@ -1,5 +1,7 @@
 """Specific tests for the function :func:`cholupdates.rank_1.update_seeger`."""
 
+import contextlib
+
 import numpy as np
 import pytest
 
@@ -23,23 +25,20 @@ def test_memory_order(L: np.ndarray, v: np.ndarray, impl: str):
     "L_dtype,v_dtype,impl",
     [
         (L_dtype, v_dtype, impl)
-        for L_dtype in [np.float64, np.float32, np.float16, np.complex64, np.int64]
-        for v_dtype in [np.float64, np.float32, np.float16, np.complex64, np.int64]
-        for impl in cholupdates.rank_1.update_seeger.available_impls
-        # There seems to be a bug in pylint, since it marks `L_dtype` and `v_dtype` as
-        # undefined here
-        # pylint: disable=undefined-variable
-        if (
-            (L_dtype, v_dtype)
-            not in [(np.float32, np.float32), (np.float64, np.float64)]
-        )
+        for L_dtype in [np.double, np.single, np.half, np.cdouble, np.intc]
+        for v_dtype in [np.double, np.single, np.half, np.cdouble, np.intc]
+        for impl in [None] + cholupdates.rank_1.update_seeger.available_impls
     ],
 )
 def test_raise_on_wrong_dtype(L_dtype: np.dtype, v_dtype: np.dtype, impl: str):
     """Tests whether a :class:`TypeError` is raised if the Cholesky factor or the vector
     :code:`v` have an unsupported dtype."""
 
-    with pytest.raises(TypeError):
+    with (
+        pytest.raises(TypeError)
+        if not (L_dtype == v_dtype and L_dtype in (np.single, np.double))
+        else contextlib.nullcontext()
+    ):
         cholupdates.rank_1.update_seeger(
             L=np.eye(5, dtype=L_dtype), v=np.zeros(5, dtype=v_dtype), impl=impl
         )

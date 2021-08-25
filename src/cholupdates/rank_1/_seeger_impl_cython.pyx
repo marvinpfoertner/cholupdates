@@ -16,11 +16,16 @@ cimport cython
 cimport scipy.linalg.cython_blas
 
 
+ctypedef fused real:
+    float
+    double
+
+
 @cython.boundscheck(False)  # Deactivate bounds checking
 @cython.wraparound(False)   # Deactivate negative indexing
 cpdef void update(
-    double[:, :] L,
-    double[::1] v,
+    real[:, :] L,
+    real[::1] v,
 ) except *:
     """update(L, v)
 
@@ -53,8 +58,8 @@ cpdef void update(
     cdef int N = L.shape[0]
 
     # Define pointers into the raw memory buffers
-    cdef double* L_ptr = &L[0, 0]
-    cdef double* v_ptr = &v[0]
+    cdef real* L_ptr = &L[0, 0]
+    cdef real* v_ptr = &v[0]
 
     # Extract strides from memory layout. These are used for pointer arithmetic.
     cdef int L_row_stride
@@ -75,30 +80,25 @@ cpdef void update(
 
     # c and s will contain the cosine and sine terms that define the Givens rotations
     # in the loop
-    cdef double c
-    cdef double s
+    cdef real c
+    cdef real s
 
     # Loop variable
     cdef int k = 0
 
     # This must always be set to N - (k + 1)
-    cdef int drot_n = N - 1
+    cdef int rot_n = N - 1
 
     while k < N - 1:
         # - L contains a lower-triangular matrix
         # - v contains a vector with zeros in its first k entries
         # - L_ptr points to the L[k, k]
         # - v_ptr points to the v[k]
-        # - drot_n is set to N - (k + 1)
+        # - rot_n is set to N - (k + 1)
 
         # Generate Givens rotation which eliminates v[k] by rotating onto L[k, k] and
         # directly apply it only to these entries of (L|v)
-        scipy.linalg.cython_blas.drotg(
-            L_ptr,
-            v_ptr,
-            &c,
-            &s
-        )
+        rotg(L_ptr, v_ptr, &c, &s)
 
         # Now the first k + 1 entries of v are zeros
 
@@ -126,36 +126,30 @@ cpdef void update(
         v_ptr += 1
 
         # L_ptr points to L[k + 1, k] and v_ptr points to v[k + 1]
-
-        scipy.linalg.cython_blas.drot(
+        rot(
             # Apply to the last N - (k + 1) elements
-            &drot_n,
+            rot_n,
             # The next two lines define the slice L[(k + 1):, k]
             L_ptr,
-            &L_row_stride,
+            L_row_stride,
             # The next two lines define the slice v[(k + 1):]
             v_ptr,
-            &v_stride,
-            &c,
-            &s
+            v_stride,
+            c,
+            s
         )
 
         # Advance loop variable
         k = k + 1
         L_ptr += L_col_stride  # L_ptr must point to L[k, k]
         # v_ptr already points to v[k]
-        drot_n -= 1  # drot_n must be set to N - (k + 1)
+        rot_n -= 1  # rot_n must be set to N - (k + 1)
 
     # L_ptr points to L[-1, -1] and v_ptr points to v[-1]
 
     # Unroll the last iteration of the loop in order to avoid an if statement around the
     # drot call in the loop
-    scipy.linalg.cython_blas.drotg(
-        L_ptr,
-        v_ptr,
-        &c,
-        &s
-    )
+    rotg(L_ptr, v_ptr, &c, &s)
 
     if L_ptr[0] < 0.0:
         L_ptr[0] = -L_ptr[0]
@@ -338,3 +332,17 @@ cpdef void downdate(
         # Advance loop variables
         k -= 1
         N_minus_k += 1
+
+
+cdef void rotg(real* a, real* b, real* c, real* s):
+    if real is float:
+        scipy.linalg.cython_blas.srotg(a, b, c, s)
+    elif real is double:
+        scipy.linalg.cython_blas.drotg(a, b, c, s)
+
+
+cdef void rot(int n, real* x, int incx, real* y, int incy, real c, real s):
+    if real is float:
+        scipy.linalg.cython_blas.srot(&n, x, &incx, y, &incy, &c, &s)
+    elif real is double:
+        scipy.linalg.cython_blas.drot(&n, x, &incx, y, &incy, &c, &s)

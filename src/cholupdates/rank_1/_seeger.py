@@ -645,17 +645,20 @@ def downdate_seeger(
     # Validate arguments
     _validate_update_args(L, v, check_diag)
 
-    if L.dtype != np.double:
+    if L.dtype not in (np.single, np.double):
         raise TypeError(
             f"The given Cholesky factor `L` does not have dtype `np.double` (given "
             f"dtype: {L.dtype.name})"
         )
 
-    if v.dtype != np.double:
+    if v.dtype not in (np.single, np.double):
         raise TypeError(
             f"The given vector `v` does not have dtype `np.double` (given dtype: "
             f"{L.dtype.name})"
         )
+
+    if L.dtype != v.dtype:
+        raise TypeError  # TODO: Error message
 
     # Copy on demand
     if not overwrite_L:

@@ -13,19 +13,15 @@ cimport libc.math
 import numpy as np
 
 cimport cython
-cimport scipy.linalg.cython_blas
 
-
-ctypedef fused real:
-    float
-    double
+from .._blas_polymorphic cimport blas_dtype, rotg, rot, scal, dot, trsv
 
 
 @cython.boundscheck(False)  # Deactivate bounds checking
 @cython.wraparound(False)   # Deactivate negative indexing
 cpdef void update(
-    real[:, :] L,
-    real[::1] v,
+    blas_dtype[:, :] L,
+    blas_dtype[::1] v,
 ) except *:
     """update(L, v)
 
@@ -58,8 +54,8 @@ cpdef void update(
     cdef int N = L.shape[0]
 
     # Define pointers into the raw memory buffers
-    cdef real* L_ptr = &L[0, 0]
-    cdef real* v_ptr = &v[0]
+    cdef blas_dtype* L_ptr = &L[0, 0]
+    cdef blas_dtype* v_ptr = &v[0]
 
     # Extract strides from memory layout. These are used for pointer arithmetic.
     cdef int L_row_stride
@@ -80,8 +76,8 @@ cpdef void update(
 
     # c and s will contain the cosine and sine terms that define the Givens rotations
     # in the loop
-    cdef real c
-    cdef real s
+    cdef blas_dtype c
+    cdef blas_dtype s
 
     # Loop variable
     cdef int k = 0
@@ -158,8 +154,8 @@ cpdef void update(
 @cython.boundscheck(False)  # Deactivate bounds checking
 @cython.wraparound(False)   # Deactivate negative indexing
 cpdef void downdate(
-    real[:, :] L,
-    real[::1] v,
+    blas_dtype[:, :] L,
+    blas_dtype[::1] v,
 ) except *:
     """downdate(L, v)
 
@@ -218,8 +214,8 @@ cpdef void downdate(
         )
 
     # Compute p by solving L @ p = v
-    cdef char dtrsv_uplo
-    cdef char dtrsv_trans
+    cdef char* dtrsv_uplo
+    cdef char* dtrsv_trans
 
     if L.is_f_contig():
         # Solve L @ p = v
@@ -235,7 +231,7 @@ cpdef void downdate(
     trsv(
         dtrsv_uplo,
         dtrsv_trans,
-        <char>b'N',  # In general, L does not have a unit diagonal
+        b'N',  # In general, L does not have a unit diagonal
         N,
         &L[0, 0],
         N,
@@ -243,30 +239,30 @@ cpdef void downdate(
         1,
     )
 
-    cdef real[:] p = v  # `v` now contains p
+    cdef blas_dtype[:] p = v  # `v` now contains p
 
     # Compute ρ = √(1 - p^T @ p)
-    cdef real p_dot_p = dot(N, &p[0], 1, &p[0], 1)
+    cdef blas_dtype p_dot_p = dot(N, &p[0], 1, &p[0], 1)
 
-    cdef real rho_sq = 1.0 - p_dot_p
+    cdef blas_dtype rho_sq = 1.0 - p_dot_p
 
     if rho_sq <= 0.0:
         # The downdated matrix is positive definite if and only if rho ** 2 is positive
         raise np.linalg.LinAlgError("The downdated matrix is not positive definite.")
 
-    cdef real rho = libc.math.sqrt(rho_sq)
+    cdef blas_dtype rho = libc.math.sqrt(rho_sq)
 
     # "Append" `rho` to `p` to form `q`
-    cdef real[:] q_1n = p  # contains `q[:-1]`
-    cdef real q_np1 = rho  # contains `q[-1]`
+    cdef blas_dtype[:] q_1n = p  # contains `q[:-1]`
+    cdef blas_dtype q_np1 = rho  # contains `q[-1]`
 
     # "Append" a column of zeros to `L` to form the augmented matrix `L_aug`
-    cdef real[:, :] L_aug_cols_1n = L  # contains `L_aug[:, :-1]`
+    cdef blas_dtype[:, :] L_aug_cols_1n = L  # contains `L_aug[:, :-1]`
     cdef int L_aug_cols_1n_row_stride = L_row_stride
 
-    cdef real[::1] L_aug_col_np1  # contains `L_aug[:, -1]`
+    cdef blas_dtype[::1] L_aug_col_np1  # contains `L_aug[:, -1]`
 
-    if real is float:
+    if blas_dtype is float:
         L_aug_col_np1 = np.zeros(N, dtype=np.single)
     else:
         L_aug_col_np1 = np.zeros(N, dtype=np.double)
@@ -275,8 +271,8 @@ cpdef void downdate(
     cdef int k = N - 1
     cdef int N_minus_k = 1  # Needed for BLAS calls
 
-    cdef real c
-    cdef real s
+    cdef blas_dtype c
+    cdef blas_dtype s
 
     while k >= 0:
         # Generate Givens rotation which eliminates the k-th entry of `q` with the
@@ -324,53 +320,3 @@ cpdef void downdate(
         # Advance loop variables
         k -= 1
         N_minus_k += 1
-
-
-cdef void rotg(real* a, real* b, real* c, real* s):
-    if real is float:
-        scipy.linalg.cython_blas.srotg(a, b, c, s)
-    elif real is double:
-        scipy.linalg.cython_blas.drotg(a, b, c, s)
-
-
-cdef void rot(int n, real* x, int incx, real* y, int incy, real c, real s):
-    if real is float:
-        scipy.linalg.cython_blas.srot(&n, x, &incx, y, &incy, &c, &s)
-    elif real is double:
-        scipy.linalg.cython_blas.drot(&n, x, &incx, y, &incy, &c, &s)
-
-cdef void trsv(char uplo, char trans, char diag, int n, real* a, int lda, real* x, int inxc):
-    if real is float:
-        scipy.linalg.cython_blas.strsv(
-            &uplo,
-            &trans,
-            &diag,
-            &n,
-            a,
-            &lda,
-            x,
-            &inxc,
-        )
-    elif real is double:
-        scipy.linalg.cython_blas.dtrsv(
-            &uplo,
-            &trans,
-            &diag,
-            &n,
-            a,
-            &lda,
-            x,
-            &inxc,
-        )
-
-cdef real dot(int n, real* x, int incx, real* y, int incy):
-    if real is float:
-        return scipy.linalg.cython_blas.sdot(&n, x, &incx, y, &incy)
-    elif real is double:
-        return scipy.linalg.cython_blas.ddot(&n, x, &incx, y, &incy)
-
-cdef void scal(int n, real alpha, real* x, int incx):
-    if real is float:
-        scipy.linalg.cython_blas.sscal(&n, &alpha, x, &incx)
-    elif real is double:
-        scipy.linalg.cython_blas.dscal(&n, &alpha, x, &incx)

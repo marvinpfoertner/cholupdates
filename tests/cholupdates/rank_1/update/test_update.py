@@ -152,7 +152,7 @@ def test_ill_conditioned_matrix(
     spectrum, Q = A_eigh
 
     # Generate adverse update vector, which increases the condition number by 100000
-    v = Q[:, -1]  # Select eigenvector corresponding to largest eigenvalue
+    v = Q[:, -1].copy()  # Select eigenvector corresponding to largest eigenvalue
     v *= np.sqrt(spectrum[-1] * (100000.0 - 1.0))
 
     # Compute update

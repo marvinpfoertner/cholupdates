@@ -24,6 +24,24 @@ def test_memory_order(L: np.ndarray, v: np.ndarray, impl: str):
 
 
 @pytest.mark.parametrize(
+    "impl", [None] + cholupdates.rank_1.downdate_seeger.available_impls
+)
+def test_non_contiguous(N: int, L: np.ndarray, v: np.ndarray, impl: str):
+    """Assert that a non-contiguous array leads to a `ValueError`"""
+
+    if N > 1:
+        L_noncontig = np.stack([np.eye(N, dtype=L.dtype) for _ in range(8)], axis=1)
+
+        with pytest.raises(ValueError):
+            cholupdates.rank_1.downdate_seeger(L_noncontig[:, 3, :], v, impl=impl)
+
+        v_noncontig = np.zeros((N, 3), dtype=v.dtype, order="C")
+
+        with pytest.raises(ValueError):
+            cholupdates.rank_1.downdate_seeger(L, v_noncontig[:, 1], impl=impl)
+
+
+@pytest.mark.parametrize(
     "L_dtype,v_dtype,impl",
     [
         (L_dtype, v_dtype, impl)

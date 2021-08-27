@@ -14,7 +14,7 @@ import numpy as np
 
 cimport cython
 
-from .._blas_polymorphic cimport blas_dtype, rotg, rot, scal, dot, trsv
+from .._blas_polymorphic cimport blas_dtype, dot, rot, rotg, scal, trsv
 
 
 @cython.boundscheck(False)  # Deactivate bounds checking

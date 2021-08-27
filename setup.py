@@ -1,3 +1,5 @@
+import os
+
 from setuptools import setup
 
 # Cython Extensions
@@ -9,8 +11,6 @@ try:
     # This import must come after the setuptools import
     from Cython.Build import cythonize
     import scipy  # pylint: disable=unused-import
-
-    import os
 
     # isort: on
 

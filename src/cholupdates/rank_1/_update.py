@@ -177,7 +177,7 @@ def update(
             **method_kwargs,
         )
     else:
-        raise ValueError(f"Unknown method: '{method}'")
+        raise NotImplementedError(f"Unknown method: '{method}'")
 
     return L_upd
 

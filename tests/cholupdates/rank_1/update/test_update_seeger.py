@@ -1,7 +1,5 @@
 """Specific tests for the function :func:`cholupdates.rank_1.update_seeger`."""
 
-import contextlib
-
 import numpy as np
 import pytest
 
@@ -52,11 +50,8 @@ def test_raise_on_wrong_dtype(L_dtype: np.dtype, v_dtype: np.dtype, impl: str):
     """Tests whether a :class:`TypeError` is raised if the Cholesky factor or the vector
     :code:`v` have an unsupported dtype."""
 
-    with (
-        pytest.raises(TypeError)
-        if not (L_dtype == v_dtype and L_dtype in (np.single, np.double))
-        else contextlib.nullcontext()
-    ):
-        cholupdates.rank_1.update_seeger(
-            L=np.eye(5, dtype=L_dtype), v=np.zeros(5, dtype=v_dtype), impl=impl
-        )
+    if not (L_dtype == v_dtype and L_dtype in (np.single, np.double)):
+        with pytest.raises(TypeError):
+            cholupdates.rank_1.update_seeger(
+                L=np.eye(5, dtype=L_dtype), v=np.zeros(5, dtype=v_dtype), impl=impl
+            )

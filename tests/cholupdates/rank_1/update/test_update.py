@@ -12,7 +12,9 @@ def test_valid_matrix_square_root(A_ud: np.ndarray, L_ud: np.ndarray):
     """Assert that the resulting Cholesky factor right-multiplied with its transpose
     is (up to numerical imprecisions) equal to the updated matrix, i.e. that the
     Cholesky factor is a valid matrix square root"""
-    np.testing.assert_allclose(L_ud @ L_ud.T, A_ud)
+    np.testing.assert_allclose(
+        L_ud @ L_ud.T, A_ud, rtol=1e-4 if L_ud.dtype == np.single else 1e-7
+    )
 
 
 def test_positive_diagonal(L_ud: np.ndarray):
@@ -159,4 +161,6 @@ def test_ill_conditioned_matrix(
     # Check quality
     A_up = A + np.outer(v, v)
 
-    np.testing.assert_allclose(L_up @ L_up.T, A_up)
+    np.testing.assert_allclose(
+        L_up @ L_up.T, A_up, rtol=1e-4 if A.dtype == np.single else 1e-7
+    )

@@ -57,9 +57,10 @@ def update_seeger(
 
     Parameters
     ----------
-    L : (N, N) numpy.ndarray, dtype=numpy.double
+    L : (N, N) numpy.ndarray, dtype=numpy.single or numpy.double
         Lower-triangular Cholesky factor of :math:`A`.
         Must have a non-zero diagonal.
+        Must have the same dtype as :code:`v`.
         The algorithm is most efficient if this array is given in column-major layout,
         a.k.a. Fortran-contiguous or f-contiguous memory order. Hint: Lower-triangular
         Cholesky factors in column-major memory layout can be obtained efficiently (i.e.
@@ -69,9 +70,9 @@ def update_seeger(
         of the matrix. This behavior is useful when using the Cholesky factors returned
         by :func:`scipy.linalg.cho_factor` which contain arbitrary values on the
         irrelevant triangular part of the matrix.
-    v : (N,) numpy.ndarray, dtype=numpy.double
+    v : (N,) numpy.ndarray, dtype=numpy.single or numpy.double
         The vector :math:`v` which defines the symmetric rank-1 update matrix
-        :math:`v v^T`.
+        :math:`v v^T`. Must have the same dtype as :code:`L`.
     check_diag :
         If set to :code:`True`, the function will check whether the diagonal of the
         given Cholesky factor :code:`L` is non-zero and raise a :class:`ValueError` if
@@ -107,13 +108,13 @@ def update_seeger(
 
     Returns
     -------
-    (N, N) numpy.ndarray, dtype=numpy.double
+    (N, N) numpy.ndarray, dtype=L.dtype
         Lower-triangular Cholesky factor :math:`L^+` of :math:`A + v v^T` with shape
-        :code:`(N, N)` and dtype :class:`numpy.double`.
+        :code:`(N, N)`.
         The diagonal entries of this matrix are guaranteed to be positive.
         The strict upper-triangular part of this matrix will contain the values from the
         upper-triangular part of :code:`L`.
-        The matrix will inherit the memory order from :code:`L`.
+        The matrix will inherit dtype and memory order from :code:`L`.
 
     Raises
     ------
@@ -126,9 +127,11 @@ def update_seeger(
         If :code:`v` does not have shape :code:`(N,)`, while :code:`L` has shape
         :code:`(N, N)`.
     TypeError
-        If :code:`L` does not have dtype :class:`numpy.double`.
+        If :code:`L` does not have dtype :class:`numpy.single` or :class:`numpy.double`.
     TypeError
-        If :code:`v` does not have dtype :class:`numpy.double`.
+        If :code:`v` does not have dtype :class:`numpy.single` or :class:`numpy.double`.
+    TypeError
+        If :code:`L` and :code:`v` don't have the same dtype.
     ValueError
         If :code:`impl` was set to :code:`"cython"`, but the Cython implementation is
         not available.
@@ -232,16 +235,21 @@ def update_seeger(
     # Validate arguments
     _validate_update_args(L, v, check_diag)
 
-    if L.dtype != np.double:
+    if L.dtype not in (np.single, np.double):
         raise TypeError(
-            f"The given Cholesky factor `L` does not have dtype `np.double` (given "
-            f"dtype: {L.dtype.name})"
+            f"The given Cholesky factor `L` does not have dtype `np.single` or "
+            f"`np.double` (given dtype: {L.dtype.name})"
         )
 
-    if v.dtype != np.double:
+    if v.dtype not in (np.single, np.double):
         raise TypeError(
-            f"The given vector `v` does not have dtype `np.double` (given dtype: "
-            f"{L.dtype.name})"
+            f"The given vector `v` does not have dtype `np.single` or `np.double` "
+            f"(given dtype: {v.dtype.name})."
+        )
+
+    if L.dtype != v.dtype:
+        raise TypeError(
+            f"`L` and `v` don't have the same dtype ({L.dtype.name} != v.dtype.name)."
         )
 
     # Copy on demand
@@ -299,9 +307,10 @@ def downdate_seeger(
 
     Parameters
     ----------
-    L : (N, N) numpy.ndarray, dtype=numpy.double
+    L : (N, N) numpy.ndarray, dtype=numpy.single or numpy.double
         Lower-triangular Cholesky factor of :math:`A`.
         Must have a non-zero diagonal.
+        Must have the same dtype as :code:`v`.
         The algorithm is most efficient if this array is given in column-major layout,
         a.k.a. Fortran-contiguous or f-contiguous memory order. Hint: Lower-triangular
         Cholesky factors in column-major memory layout can be obtained efficiently (i.e.
@@ -311,9 +320,9 @@ def downdate_seeger(
         of the matrix. This behavior is useful when using the Cholesky factors returned
         by :func:`scipy.linalg.cho_factor` which contain arbitrary values on the
         irrelevant triangular part of the matrix.
-    v : (N,) numpy.ndarray, dtype=numpy.double
+    v : (N,) numpy.ndarray, dtype=numpy.single or numpy.double
         The vector :math:`v` which defines the symmetric rank-1 downdate matrix
-        :math:`v v^T`.
+        :math:`v v^T`. Must have the same dtype as :code:`L`.
     check_diag :
         If set to :code:`True`, the function will check whether the diagonal of the
         given Cholesky factor :code:`L` is non-zero and raise a :class:`ValueError` if
@@ -349,13 +358,13 @@ def downdate_seeger(
 
     Returns
     -------
-    (N, N) numpy.ndarray, dtype=numpy.double
+    (N, N) numpy.ndarray, dtype=L.dtype
         Lower-triangular Cholesky factor :math:`L^-` of :math:`A - v v^T` with shape
-        :code:`(N, N)` and dtype :class:`numpy.double`.
+        :code:`(N, N)`.
         The diagonal entries of this matrix are guaranteed to be positive.
         The strict upper-triangular part of this matrix will contain the values from the
         upper-triangular part of :code:`L`.
-        The matrix will inherit the memory order from :code:`L`.
+        The matrix will inherit dtype and memory order from :code:`L`.
 
     Raises
     ------
@@ -368,9 +377,11 @@ def downdate_seeger(
         If :code:`v` does not have shape :code:`(N,)`, while :code:`L` has shape
         :code:`(N, N)`.
     TypeError
-        If :code:`L` does not have dtype :class:`numpy.double`.
+        If :code:`L` does not have dtype :class:`numpy.single` or :class:`numpy.double`.
     TypeError
-        If :code:`v` does not have dtype :class:`numpy.double`.
+        If :code:`v` does not have dtype :class:`numpy.single` or :class:`numpy.double`.
+    TypeError
+        If :code:`L` and :code:`v` don't have the same dtype.
     ValueError
         If :code:`impl` was set to :code:`"cython"`, but the Cython implementation is
         not available.
@@ -642,16 +653,21 @@ def downdate_seeger(
     # Validate arguments
     _validate_update_args(L, v, check_diag)
 
-    if L.dtype != np.double:
+    if L.dtype not in (np.single, np.double):
         raise TypeError(
-            f"The given Cholesky factor `L` does not have dtype `np.double` (given "
-            f"dtype: {L.dtype.name})"
+            f"The given Cholesky factor `L` does not have dtype `np.single` or "
+            f"`np.double` (given dtype: {L.dtype.name})"
         )
 
-    if v.dtype != np.double:
+    if v.dtype not in (np.single, np.double):
         raise TypeError(
-            f"The given vector `v` does not have dtype `np.double` (given dtype: "
-            f"{L.dtype.name})"
+            f"The given vector `v` does not have dtype `np.single` or `np.double` "
+            f"(given dtype: {v.dtype.name})."
+        )
+
+    if L.dtype != v.dtype:
+        raise TypeError(
+            f"`L` and `v` don't have the same dtype ({L.dtype.name} != v.dtype.name)."
         )
 
     # Copy on demand

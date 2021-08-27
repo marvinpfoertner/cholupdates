@@ -13,14 +13,15 @@ cimport libc.math
 import numpy as np
 
 cimport cython
-cimport scipy.linalg.cython_blas
+
+from .._blas_polymorphic cimport blas_dtype, dot, rot, rotg, scal, trsv
 
 
 @cython.boundscheck(False)  # Deactivate bounds checking
 @cython.wraparound(False)   # Deactivate negative indexing
 cpdef void update(
-    double[:, :] L,
-    double[::1] v,
+    blas_dtype[:, :] L,
+    blas_dtype[::1] v,
 ) except *:
     """update(L, v)
 
@@ -31,17 +32,21 @@ cpdef void update(
 
     Parameters
     ----------
-    L : (N, N) numpy.ndarray, dtype=numpy.double
+    L : (N, N) numpy.ndarray, dtype=numpy.single or numpy.double
         The lower-triangular Cholesky factor of the matrix to be updated.
-        Must have shape `(N, N)` and dtype `np.double`.
+        Must have shape :code:`(N, N)` and dtype :class:`np.single` or
+        :class:`np.double`.
+        Must have the same dtype as :code:`v`.
         Must not contain zeros on the diagonal.
         The entries in the strict upper triangular part of :code:`L` can contain
         arbitrary values, since the algorithm neither reads from nor writes to this part
         of the matrix.
         Will be overridden with the Cholesky factor of the matrix to be updated.
-    v : (N,) numpy.ndarray, dtype=numpy.double
-        The vector :math:`v` with shape :code:`(N, N)` and dtype :class:`numpy.double`
-        defining the symmetric rank-1 update :math:`v v^T`.
+    v : (N,) numpy.ndarray, dtype=numpy.single or numpy.double
+        The vector :math:`v` defining the symmetric rank-1 update :math:`v v^T`.
+        Must have shape :code:`(N,)` and dtype :class:`np.single` or
+        :class:`numpy.double`.
+        Must have the same dtype as :code:`L`.
         Will be reused as an internal memory buffer to store intermediate results, and
         thus modified.
 
@@ -53,8 +58,8 @@ cpdef void update(
     cdef int N = L.shape[0]
 
     # Define pointers into the raw memory buffers
-    cdef double* L_ptr = &L[0, 0]
-    cdef double* v_ptr = &v[0]
+    cdef blas_dtype* L_ptr = &L[0, 0]
+    cdef blas_dtype* v_ptr = &v[0]
 
     # Extract strides from memory layout. These are used for pointer arithmetic.
     cdef int L_row_stride
@@ -75,30 +80,25 @@ cpdef void update(
 
     # c and s will contain the cosine and sine terms that define the Givens rotations
     # in the loop
-    cdef double c
-    cdef double s
+    cdef blas_dtype c
+    cdef blas_dtype s
 
     # Loop variable
     cdef int k = 0
 
     # This must always be set to N - (k + 1)
-    cdef int drot_n = N - 1
+    cdef int rot_n = N - 1
 
     while k < N - 1:
         # - L contains a lower-triangular matrix
         # - v contains a vector with zeros in its first k entries
         # - L_ptr points to the L[k, k]
         # - v_ptr points to the v[k]
-        # - drot_n is set to N - (k + 1)
+        # - rot_n is set to N - (k + 1)
 
         # Generate Givens rotation which eliminates v[k] by rotating onto L[k, k] and
         # directly apply it only to these entries of (L|v)
-        scipy.linalg.cython_blas.drotg(
-            L_ptr,
-            v_ptr,
-            &c,
-            &s
-        )
+        rotg(L_ptr, v_ptr, &c, &s)
 
         # Now the first k + 1 entries of v are zeros
 
@@ -126,36 +126,30 @@ cpdef void update(
         v_ptr += 1
 
         # L_ptr points to L[k + 1, k] and v_ptr points to v[k + 1]
-
-        scipy.linalg.cython_blas.drot(
+        rot(
             # Apply to the last N - (k + 1) elements
-            &drot_n,
+            rot_n,
             # The next two lines define the slice L[(k + 1):, k]
             L_ptr,
-            &L_row_stride,
+            L_row_stride,
             # The next two lines define the slice v[(k + 1):]
             v_ptr,
-            &v_stride,
-            &c,
-            &s
+            v_stride,
+            c,
+            s
         )
 
         # Advance loop variable
         k = k + 1
         L_ptr += L_col_stride  # L_ptr must point to L[k, k]
         # v_ptr already points to v[k]
-        drot_n -= 1  # drot_n must be set to N - (k + 1)
+        rot_n -= 1  # rot_n must be set to N - (k + 1)
 
     # L_ptr points to L[-1, -1] and v_ptr points to v[-1]
 
     # Unroll the last iteration of the loop in order to avoid an if statement around the
     # drot call in the loop
-    scipy.linalg.cython_blas.drotg(
-        L_ptr,
-        v_ptr,
-        &c,
-        &s
-    )
+    rotg(L_ptr, v_ptr, &c, &s)
 
     if L_ptr[0] < 0.0:
         L_ptr[0] = -L_ptr[0]
@@ -164,8 +158,8 @@ cpdef void update(
 @cython.boundscheck(False)  # Deactivate bounds checking
 @cython.wraparound(False)   # Deactivate negative indexing
 cpdef void downdate(
-    double[:, :] L,
-    double[::1] v,
+    blas_dtype[:, :] L,
+    blas_dtype[::1] v,
 ) except *:
     """downdate(L, v)
 
@@ -176,17 +170,21 @@ cpdef void downdate(
 
     Parameters
     ----------
-    L : (N, N) numpy.ndarray, dtype=numpy.double
+    L : (N, N) numpy.ndarray, dtype=numpy.single or numpy.double
         The lower-triangular Cholesky factor of the matrix to be downdated.
-        Must have shape `(N, N)` and dtype `np.double`.
+        Must have shape :code:`(N, N)` and dtype :class:`np.single` or
+        :class:`np.double`.
+        Must have the same dtype as :code:`v`.
         Must not contain zeros on the diagonal.
         The entries in the strict upper triangular part of :code:`L` can contain
         arbitrary values, since the algorithm neither reads from nor writes to this part
         of the matrix
         Will be overridden with the Cholesky factor of the matrix to be downdated.
-    v : (N,) numpy.ndarray, dtype=numpy.double
-        The vector :math:`v` with shape :code:`(N, N)` and dtype :class:`numpy.double`
-        defining the symmetric rank-1 downdate :math:`v v^T`.
+    v : (N,) numpy.ndarray, dtype=numpy.single or numpy.double
+        The vector :math:`v` defining the symmetric rank-1 downdate :math:`v v^T`.
+        Must have shape :code:`(N,)` and dtype :class:`np.single` or
+        :class:`np.double`.
+        Must have the same dtype as :code:`L`.
         Will be reused as an internal memory buffer to store intermediate results, and
         thus modified.
 
@@ -223,13 +221,9 @@ cpdef void downdate(
             "Unsupported memory layout. L should either be Fortran- or C-contiguous"
         )
 
-    # Define auxiliary variables for BLAS calls
-    cdef int stride_1 = 1
-    cdef double neg_1 = -1.0
-
     # Compute p by solving L @ p = v
-    cdef char dtrsv_uplo
-    cdef char dtrsv_trans
+    cdef char* dtrsv_uplo
+    cdef char* dtrsv_trans
 
     if L.is_f_contig():
         # Solve L @ p = v
@@ -237,67 +231,63 @@ cpdef void downdate(
         dtrsv_trans = b'N'
     elif L.is_c_contig():
         # Solve (L^T)^T @ p = v
-        # This is necessary because `dtrsv` expects column-major matrices and a
+        # This is necessary because `trsv` expects column-major matrices and a
         # row-major L buffer can be interpreted as a column-major L^T buffer
         dtrsv_uplo = b'U'
         dtrsv_trans = b'T'
 
-    cdef char dtrsv_diag = b'N'  # In general, L does not have a unit diagonal
-
-    scipy.linalg.cython_blas.dtrsv(
-        &dtrsv_uplo,
-        &dtrsv_trans,
-        &dtrsv_diag,
-        &N,
+    trsv(
+        dtrsv_uplo,
+        dtrsv_trans,
+        b'N',  # In general, L does not have a unit diagonal
+        N,
         &L[0, 0],
-        &N,
+        N,
         &v[0],
-        &stride_1,
+        1,
     )
 
-    cdef double[:] p = v  # `v` now contains p
+    cdef blas_dtype[:] p = v  # `v` now contains p
 
     # Compute ρ = √(1 - p^T @ p)
-    cdef double p_dot_p = scipy.linalg.cython_blas.ddot(
-        &N,
-        &p[0],
-        &stride_1,
-        &p[0],
-        &stride_1,
-    )
+    cdef blas_dtype p_dot_p = dot(N, &p[0], 1, &p[0], 1)
 
-    cdef double rho_sq = 1.0 - p_dot_p
+    cdef blas_dtype rho_sq = 1.0 - p_dot_p
 
     if rho_sq <= 0.0:
         # The downdated matrix is positive definite if and only if rho ** 2 is positive
         raise np.linalg.LinAlgError("The downdated matrix is not positive definite.")
 
-    cdef double rho = libc.math.sqrt(rho_sq)
+    cdef blas_dtype rho = libc.math.sqrt(rho_sq)
 
     # "Append" `rho` to `p` to form `q`
-    cdef double[:] q_1n = p  # contains `q[:-1]`
-    cdef double q_np1 = rho  # contains `q[-1]`
+    cdef blas_dtype[:] q_1n = p  # contains `q[:-1]`
+    cdef blas_dtype q_np1 = rho  # contains `q[-1]`
 
     # "Append" a column of zeros to `L` to form the augmented matrix `L_aug`
-    cdef double[:, :] L_aug_cols_1n = L  # contains `L_aug[:, :-1]`
+    cdef blas_dtype[:, :] L_aug_cols_1n = L  # contains `L_aug[:, :-1]`
     cdef int L_aug_cols_1n_row_stride = L_row_stride
 
-    cdef double[::1] L_aug_col_np1 = \
-        np.zeros(N, dtype=np.double)  # contains `L_aug[:, -1]`
+    cdef blas_dtype[::1] L_aug_col_np1  # contains `L_aug[:, -1]`
+
+    if blas_dtype is float:
+        L_aug_col_np1 = np.zeros(N, dtype=np.single)
+    else:
+        L_aug_col_np1 = np.zeros(N, dtype=np.double)
 
     # Initialize loop variables
     cdef int k = N - 1
     cdef int N_minus_k = 1  # Needed for BLAS calls
 
-    cdef double c
-    cdef double s
+    cdef blas_dtype c
+    cdef blas_dtype s
 
     while k >= 0:
         # Generate Givens rotation which eliminates the k-th entry of `q` with the
         # (n + 1)-th entry of `q` and directly apply it to q.
-        scipy.linalg.cython_blas.drotg(&q_np1, &q_1n[k], &c, &s)
+        rotg(&q_np1, &q_1n[k], &c, &s)
 
-        # Givens rotations generated by BLAS' `drotg` might rotate `q_np1` to a
+        # Givens rotations generated by BLAS' `rotg` might rotate `q_np1` to a
         # negative value. However, for the algorithm to work, it is important that
         # `q_np1` remains positive. As a remedy, we add another 180 degree rotation
         # to the Givens rotation matrix. This flips the sign of `q_np1` while
@@ -309,16 +299,16 @@ cpdef void downdate(
 
         # Apply the transpose of the (modified) Givens rotation matrix to the
         # augmented matrix `L_aug` from the right, i.e. compute L_aug @ Q_{c, s}^T
-        scipy.linalg.cython_blas.drot(
-            &N_minus_k,
+        rot(
+            N_minus_k,
             # The next two lines define the slice `L_aug[k:, -1]`
             &L_aug_col_np1[k],
-            &stride_1,
+            1,
             # The next two lines define the slice `L_aug[k:, k]`
             &L_aug_cols_1n[k, k],
-            &L_aug_cols_1n_row_stride,
-            &c,
-            &s,
+            L_aug_cols_1n_row_stride,
+            c,
+            s,
         )
 
         # Applying the Givens rotation might lead to a negative diagonal element in
@@ -327,12 +317,12 @@ cpdef void downdate(
         # this is possible, since rescaling a row by -1.0 is equivalent to a mirroring
         # along one dimension which is in turn an orthogonal transformation.
         if L_aug_cols_1n[k, k] < 0.0:
-            scipy.linalg.cython_blas.dscal(
-                &N_minus_k,
-                &neg_1,
+            scal(
+                N_minus_k,
+                -1.0,
                 # The next two lines define the slice `L_aug[k:, k]`
                 &L_aug_cols_1n[k, k],
-                &L_aug_cols_1n_row_stride,
+                L_aug_cols_1n_row_stride,
             )
 
         # Advance loop variables

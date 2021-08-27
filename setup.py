@@ -25,7 +25,12 @@ build_cython = cython_available and not (
 
 if build_cython:
     ext_modules.extend(
-        cythonize("src/cholupdates/rank_1/_seeger_impl_cython.pyx"),
+        cythonize(
+            [
+                "src/cholupdates/_blas_polymorphic.pyx",
+                "src/cholupdates/rank_1/_seeger_impl_cython.pyx",
+            ]
+        ),
     )
 else:
     print("Not building Cython extensions")

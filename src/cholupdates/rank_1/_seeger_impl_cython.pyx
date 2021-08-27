@@ -32,17 +32,21 @@ cpdef void update(
 
     Parameters
     ----------
-    L : (N, N) numpy.ndarray, dtype=numpy.double
+    L : (N, N) numpy.ndarray, dtype=numpy.single or numpy.double
         The lower-triangular Cholesky factor of the matrix to be updated.
-        Must have shape `(N, N)` and dtype `np.double`.
+        Must have shape :code:`(N, N)` and dtype :class:`np.single` or
+        :class:`np.double`.
+        Must have the same dtype as :code:`v`.
         Must not contain zeros on the diagonal.
         The entries in the strict upper triangular part of :code:`L` can contain
         arbitrary values, since the algorithm neither reads from nor writes to this part
         of the matrix.
         Will be overridden with the Cholesky factor of the matrix to be updated.
-    v : (N,) numpy.ndarray, dtype=numpy.double
-        The vector :math:`v` with shape :code:`(N, N)` and dtype :class:`numpy.double`
-        defining the symmetric rank-1 update :math:`v v^T`.
+    v : (N,) numpy.ndarray, dtype=numpy.single or numpy.double
+        The vector :math:`v` defining the symmetric rank-1 update :math:`v v^T`.
+        Must have shape :code:`(N,)` and dtype :class:`np.single` or
+        :class:`numpy.double`.
+        Must have the same dtype as :code:`L`.
         Will be reused as an internal memory buffer to store intermediate results, and
         thus modified.
 
@@ -166,17 +170,21 @@ cpdef void downdate(
 
     Parameters
     ----------
-    L : (N, N) numpy.ndarray, dtype=numpy.double
+    L : (N, N) numpy.ndarray, dtype=numpy.single or numpy.double
         The lower-triangular Cholesky factor of the matrix to be downdated.
-        Must have shape `(N, N)` and dtype `np.double`.
+        Must have shape :code:`(N, N)` and dtype :class:`np.single` or
+        :class:`np.double`.
+        Must have the same dtype as :code:`v`.
         Must not contain zeros on the diagonal.
         The entries in the strict upper triangular part of :code:`L` can contain
         arbitrary values, since the algorithm neither reads from nor writes to this part
         of the matrix
         Will be overridden with the Cholesky factor of the matrix to be downdated.
-    v : (N,) numpy.ndarray, dtype=numpy.double
-        The vector :math:`v` with shape :code:`(N, N)` and dtype :class:`numpy.double`
-        defining the symmetric rank-1 downdate :math:`v v^T`.
+    v : (N,) numpy.ndarray, dtype=numpy.single or numpy.double
+        The vector :math:`v` defining the symmetric rank-1 downdate :math:`v v^T`.
+        Must have shape :code:`(N,)` and dtype :class:`np.single` or
+        :class:`np.double`.
+        Must have the same dtype as :code:`L`.
         Will be reused as an internal memory buffer to store intermediate results, and
         thus modified.
 

@@ -1,6 +1,6 @@
 # cython: language_level = 3
 
-"""Polymorphic wrappers for the functions included in the BLAS library.
+"""Polymorphic wrappers for the functions/subroutines included in the BLAS library.
 
 The function names simply omit the type code from the name of the corresponding BLAS
 functions/subroutines."""

@@ -63,3 +63,11 @@ def test_unknown_impl(L: np.ndarray, v: np.ndarray):
     """Tests whether requesting an unknown implementation results in an exception."""
     with pytest.raises(NotImplementedError):
         cholupdates.rank_1.downdate_seeger(L, v, impl="doesnotexist")
+
+
+def test_cython_unavailable(L: np.ndarray, v: np.ndarray):
+    """Tests whether requesting the Cython implementation results in an exception if it
+    is not available."""
+    if "cython" not in cholupdates.rank_1.downdate_seeger.available_impls:
+        with pytest.raises(NotImplementedError):
+            cholupdates.rank_1.downdate_seeger(L, v, impl="cython")

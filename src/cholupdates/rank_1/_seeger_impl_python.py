@@ -194,7 +194,7 @@ def downdate(L: np.ndarray, v: np.ndarray) -> None:
             trans=1,
             diag=0,
         )
-    else:
+    else:  # pragma: no cover
         raise ValueError(
             "Unsupported memory layout. L should either be Fortran- or C-contiguous."
         )
@@ -256,7 +256,7 @@ def downdate(L: np.ndarray, v: np.ndarray) -> None:
             # is possible, since rescaling a row is equivalent to a mirroring along one
             # dimension which is in turn an orthogonal transformation.
             if L_aug_cols_1n[k, k] < 0.0:
-                L_aug_cols_1n[k:, k] = -L_aug_cols_1n[k:, k]
+                L_aug_cols_1n[k:, k] = -L_aug_cols_1n[k:, k]  # pragma: no cover
     elif L_aug_cols_1n.flags.c_contiguous:
         # Generate a contiguous view of the underling memory buffer of L, emulating raw
         # pointer access
@@ -310,4 +310,4 @@ def downdate(L: np.ndarray, v: np.ndarray) -> None:
             # mirroring along one dimension which is in turn an orthogonal
             # transformation.
             if L_aug_cols_1n[k, k] < 0.0:
-                L_aug_cols_1n[k:, k] = -L_aug_cols_1n[k:, k]
+                L_aug_cols_1n[k:, k] = -L_aug_cols_1n[k:, k]  # pragma: no cover

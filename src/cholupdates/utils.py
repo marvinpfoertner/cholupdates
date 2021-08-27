@@ -80,22 +80,20 @@ def random_spd_matrix(
         A = scipy.stats.norm.rvs(size=(N, N), random_state=rng).astype(
             dtype, copy=False
         )
-        A = A @ A.T
+        M = A @ A.T
 
         # Make positive definite
-        A += np.eye(N, dtype=dtype)
+        M += np.eye(N, dtype=dtype)
 
         # Apply Jacobi preconditioner to improve condition number
-        D = np.sqrt(np.diag(A))
-        A = D[:, None] * A * D[None, :]
+        D = np.sqrt(np.diag(M))
+        M = D[:, None] * M * D[None, :]
+    else:
+        # Sample a random Eigendecomposition
+        spectrum, Q = random_spd_eigendecomposition(N, dtype=dtype, rng=rng)
 
-        return A
-
-    # Sample a random Eigendecomposition
-    spectrum, Q = random_spd_eigendecomposition(N, dtype=dtype, rng=rng)
-
-    # Assemble matrix
-    M = Q @ np.diag(spectrum) @ Q.T
+        # Assemble matrix
+        M = Q @ np.diag(spectrum) @ Q.T
 
     # Symmetrize
     M = 0.5 * (M + M.T)

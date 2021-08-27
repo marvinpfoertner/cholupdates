@@ -8,10 +8,17 @@ import pytest
 import cholupdates.utils
 
 
-@pytest.fixture(params=[pytest.param(N, id=f"dim{N}") for N in [2, 3, 5, 10, 100]])
+@pytest.fixture(
+    params=[
+        pytest.param((N, fast), id=f"dim{N}{'-fast' if fast else ''}")
+        for N in [2, 3, 5, 10, 100]
+        for fast in [False, True]
+    ]
+)
 def random_spd_matrix(request, rng: np.random.Generator) -> np.ndarray:
     """Random symmetric, positive-definite matrix whose properties will be tested."""
-    return cholupdates.utils.random_spd_matrix(request.param, rng=rng)
+    N, fast = request.param
+    return cholupdates.utils.random_spd_matrix(N, fast=fast, rng=rng)
 
 
 def test_random_spd_matrix_symmetric(random_spd_matrix: np.ndarray):

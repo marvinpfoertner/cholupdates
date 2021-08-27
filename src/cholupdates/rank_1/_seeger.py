@@ -286,7 +286,7 @@ def update_seeger(
     elif impl == "python":
         _update_impl_python(L, v)
     else:
-        raise ValueError(
+        raise NotImplementedError(
             f"Unknown implementation '{impl}'. Available implementations: "
             f"{', '.join(_update_available_impls)}"
         )
@@ -720,7 +720,7 @@ def downdate_seeger(
     elif impl == "python":
         _downdate_impl_python(L, v)
     else:
-        raise ValueError(
+        raise NotImplementedError(
             f"Unknown implementation '{impl}'. Available implementations: "
             f"{', '.join(_update_available_impls)}"
         )

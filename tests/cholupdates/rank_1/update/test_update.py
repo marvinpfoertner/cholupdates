@@ -164,3 +164,9 @@ def test_ill_conditioned_matrix(
     np.testing.assert_allclose(
         L_up @ L_up.T, A_up, rtol=1e-4 if A.dtype == np.single else 1e-7
     )
+
+
+def test_unknown_method(L: np.ndarray, v: np.ndarray):
+    """Tests whether requesting an unknown method results in an exception."""
+    with pytest.raises(NotImplementedError):
+        cholupdates.rank_1.update(L, v, method="doesnotexist")

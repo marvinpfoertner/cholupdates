@@ -57,3 +57,9 @@ def test_raise_on_wrong_dtype(L_dtype: np.dtype, v_dtype: np.dtype, impl: str):
             cholupdates.rank_1.downdate_seeger(
                 L=np.eye(5, dtype=L_dtype), v=np.zeros(5, dtype=v_dtype), impl=impl
             )
+
+
+def test_unknown_impl(L: np.ndarray, v: np.ndarray):
+    """Tests whether requesting an unknown implementation results in an exception."""
+    with pytest.raises(NotImplementedError):
+        cholupdates.rank_1.downdate_seeger(L, v, impl="doesnotexist")

@@ -200,3 +200,9 @@ def test_ill_conditioned_matrix(
         A_down,
         rtol=2e-1 if A.dtype == np.single else 1e-7,
     )
+
+
+def test_unknown_method(L: np.ndarray, v: np.ndarray):
+    """Tests whether requesting an unknown method results in an exception."""
+    with pytest.raises(NotImplementedError):
+        cholupdates.rank_1.downdate(L, v, method="doesnotexist")

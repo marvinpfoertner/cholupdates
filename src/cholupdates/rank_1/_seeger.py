@@ -61,6 +61,7 @@ def update_seeger(
         Lower-triangular Cholesky factor of :math:`A`.
         Must have a non-zero diagonal.
         Must have the same dtype as :code:`v`.
+        Must be a contiguous array (either Fortran- or C-contiguous).
         The algorithm is most efficient if this array is given in column-major layout,
         a.k.a. Fortran-contiguous or f-contiguous memory order. Hint: Lower-triangular
         Cholesky factors in column-major memory layout can be obtained efficiently (i.e.
@@ -72,7 +73,9 @@ def update_seeger(
         irrelevant triangular part of the matrix.
     v : (N,) numpy.ndarray, dtype=numpy.single or numpy.double
         The vector :math:`v` which defines the symmetric rank-1 update matrix
-        :math:`v v^T`. Must have the same dtype as :code:`L`.
+        :math:`v v^T`.
+        Must have the same dtype as :code:`L`.
+        Must be a contiguous array.
     check_diag :
         If set to :code:`True`, the function will check whether the diagonal of the
         given Cholesky factor :code:`L` is non-zero and raise a :class:`ValueError` if
@@ -132,6 +135,8 @@ def update_seeger(
         If :code:`v` does not have dtype :class:`numpy.single` or :class:`numpy.double`.
     TypeError
         If :code:`L` and :code:`v` don't have the same dtype.
+    ValueError
+        If :code:`L` or :code:`v` is not contiguous in memory.
     ValueError
         If :code:`impl` was set to :code:`"cython"`, but the Cython implementation is
         not available.
@@ -252,6 +257,17 @@ def update_seeger(
             f"`L` and `v` don't have the same dtype ({L.dtype.name} != v.dtype.name)."
         )
 
+    if not L.flags.f_contiguous and not L.flags.c_contiguous:
+        raise ValueError(
+            "`L` is neither Fortran- nor C-contiguous, i.e. the memory layout of the "
+            "matrix is neither column- nor row-major."
+        )
+
+    if not v.flags.c_contiguous:
+        assert not v.flags.f_contiguous
+
+        raise ValueError("`v` is not a contiguous array.")
+
     # Copy on demand
     if not overwrite_L:
         L = L.copy(order="K")
@@ -311,6 +327,7 @@ def downdate_seeger(
         Lower-triangular Cholesky factor of :math:`A`.
         Must have a non-zero diagonal.
         Must have the same dtype as :code:`v`.
+        Must be a contiguous array (either Fortran- or C-contiguous).
         The algorithm is most efficient if this array is given in column-major layout,
         a.k.a. Fortran-contiguous or f-contiguous memory order. Hint: Lower-triangular
         Cholesky factors in column-major memory layout can be obtained efficiently (i.e.
@@ -322,7 +339,9 @@ def downdate_seeger(
         irrelevant triangular part of the matrix.
     v : (N,) numpy.ndarray, dtype=numpy.single or numpy.double
         The vector :math:`v` which defines the symmetric rank-1 downdate matrix
-        :math:`v v^T`. Must have the same dtype as :code:`L`.
+        :math:`v v^T`.
+        Must have the same dtype as :code:`L`.
+        Must be a contiguous array (either Fortran- or C-contiguous).
     check_diag :
         If set to :code:`True`, the function will check whether the diagonal of the
         given Cholesky factor :code:`L` is non-zero and raise a :class:`ValueError` if
@@ -382,6 +401,8 @@ def downdate_seeger(
         If :code:`v` does not have dtype :class:`numpy.single` or :class:`numpy.double`.
     TypeError
         If :code:`L` and :code:`v` don't have the same dtype.
+    ValueError
+        If :code:`L` or :code:`v` is not contiguous in memory.
     ValueError
         If :code:`impl` was set to :code:`"cython"`, but the Cython implementation is
         not available.
@@ -669,6 +690,17 @@ def downdate_seeger(
         raise TypeError(
             f"`L` and `v` don't have the same dtype ({L.dtype.name} != v.dtype.name)."
         )
+
+    if not L.flags.f_contiguous and not L.flags.c_contiguous:
+        raise ValueError(
+            "`L` is neither Fortran- nor C-contiguous, i.e. the memory layout of the "
+            "matrix is neither column- nor row-major."
+        )
+
+    if not v.flags.c_contiguous:
+        assert not v.flags.f_contiguous
+
+        raise ValueError("`v` is not a contiguous array.")
 
     # Copy on demand
     if not overwrite_L:
